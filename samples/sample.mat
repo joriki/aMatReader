@@ -1,0 +1,6 @@
+#Simple tab-delimited adjacency matrix
+	Node1	Node2	Node3	Node4
+Node1		1	4	
+Node2	1		3	3
+Node3	4	3		1
+Node4		3	1		

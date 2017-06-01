@@ -57,10 +57,24 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 	@Tunable(description="Treat edges as undirected", gravity=12)
 	public boolean undirected = false;
 
+	@Tunable(description="Set N/A values to 0.0", groups={"Advanced Options"}, params="displayState=collapsed", gravity=20)
+	public boolean zeroNA = false;
+
+	@Tunable(description="Create weight column as local", groups={"Advanced Options"}, params="displayState=collapsed", gravity=21)
+	public boolean localWeight = false;
+
+	@Tunable(description="Column name for weights", groups={"Advanced Options"}, params="displayState=collapsed", gravity=22)
+	public String columnName = "weight";
+
+	@Tunable(description="Interaction type", groups={"Advanced Options"}, params="displayState=collapsed", gravity=23)
+	public String interactionName = "pp";
+
 	@ProvidesTitle
 	public String getTitle() { return "Adjacency Matrix Reader"; }
 
 	public CyRootNetwork rootNetwork = null;
+
+	private String namespace = CyNetwork.DEFAULT_ATTRS;
 
 	public AMatReaderTask(final InputStream inputStream, final String name, final CyNetworkViewFactory cyNetworkViewFactory,
 	                     final CyNetworkFactory cyNetworkFactory, final CyNetworkManager cyNetworkManager,
@@ -80,6 +94,8 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 	@Override
 	public void run(TaskMonitor taskMonitor) {
 		CyNetwork network = null;
+		if (localWeight)
+			namespace = CyNetwork.LOCAL_ATTRS;
 
 		rootNetwork = getRootNetwork();
 		if (rootNetwork != null) {
@@ -140,8 +156,8 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 		CyTable nodeTable = net.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS);
 		nodeTable.createColumn("Type", String.class, false);
 
-		CyTable edgeTable = net.getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS);
-		edgeTable.createColumn("weight", Double.class, false);
+		CyTable edgeTable = net.getTable(CyEdge.class, namespace);
+		edgeTable.createColumn(columnName, Double.class, false);
 		return;
 	}
 
@@ -182,10 +198,13 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 						edge = net.addEdge(sourceNode, targetNode, false);
 					else
 						edge = net.addEdge(sourceNode, targetNode, true);
-					net.getRow(edge).set(CyRootNetwork.SHARED_NAME, sourceName+" (weight) "+headerRow[i]);
+					net.getRow(edge).set(CyRootNetwork.SHARED_NAME, sourceName+" ("+interactionName+") "+headerRow[i]);
+					net.getRow(edge).set(CyRootNetwork.SHARED_INTERACTION, interactionName);
+					net.getRow(edge, CyNetwork.LOCAL_ATTRS).set(CyEdge.INTERACTION, interactionName);
+					net.getRow(edge, CyNetwork.LOCAL_ATTRS).set(CyNetwork.NAME, sourceName+" ("+interactionName+") "+headerRow[i]);
 				}
-				net.getRow(edge, CyNetwork.LOCAL_ATTRS).set("weight", new Double(dataRow[i]));
-				net.getRow(edge, CyNetwork.LOCAL_ATTRS).set(CyNetwork.NAME, sourceName+" (weight) "+headerRow[i]);
+				Double value = getValue(dataRow[i]);
+				net.getRow(edge, namespace).set(columnName, value);
 			}
 		}
 	}
@@ -243,5 +262,17 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 				return i;
 		}
 		return -1;
+	}
+
+	// Handle NA, N/A, and any other possible non-numeric values
+	Double getValue(String value) {
+		Double v = null;
+		try {
+			v = new Double(value);
+		} catch (NumberFormatException nfe) {
+			if (zeroNA)
+				v = 0.0;
+		}
+		return v;
 	}
 }

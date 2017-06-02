@@ -57,16 +57,19 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 	@Tunable(description="Treat edges as undirected", gravity=12)
 	public boolean undirected = false;
 
-	@Tunable(description="Set N/A values to 0.0", groups={"Advanced Options"}, params="displayState=collapsed", gravity=20)
+	@Tunable(description="Set N/A to a fixed value", groups={"Advanced Options"}, params="displayState=collapsed", gravity=20)
 	public boolean zeroNA = false;
 
-	@Tunable(description="Create weight column as local", groups={"Advanced Options"}, params="displayState=collapsed", gravity=21)
+	@Tunable(description="Set N/A to a fixed value", dependsOn="zeroNA=true", groups={"Advanced Options"}, params="displayState=collapsed", gravity=22)
+	public double naValue = 0.0;
+
+	@Tunable(description="Create weight column as local", groups={"Advanced Options"}, params="displayState=collapsed", gravity=30)
 	public boolean localWeight = false;
 
-	@Tunable(description="Column name for weights", groups={"Advanced Options"}, params="displayState=collapsed", gravity=22)
+	@Tunable(description="Column name for weights", groups={"Advanced Options"}, params="displayState=collapsed", gravity=33)
 	public String columnName = "weight";
 
-	@Tunable(description="Interaction type", groups={"Advanced Options"}, params="displayState=collapsed", gravity=23)
+	@Tunable(description="Interaction type", groups={"Advanced Options"}, params="displayState=collapsed", gravity=34)
 	public String interactionName = "pp";
 
 	@ProvidesTitle
@@ -271,7 +274,7 @@ public class AMatReaderTask extends AbstractCyNetworkReader {
 			v = new Double(value);
 		} catch (NumberFormatException nfe) {
 			if (zeroNA)
-				v = 0.0;
+				v = naValue;
 		}
 		return v;
 	}

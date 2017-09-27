@@ -1,4 +1,4 @@
-package edu.ucsf.rbvi.aMatReader.internal.tasks;
+package org.cytoscape.aMatReader.internal.tasks;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.cytoscape.aMatReader.internal.rest.Delimiters;
 import org.cytoscape.io.read.AbstractCyNetworkReader;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
@@ -29,24 +30,6 @@ import org.cytoscape.work.util.ListSingleSelection;
 public class AMatReaderTask extends AbstractCyNetworkReader {
 	public final BufferedReader input;
 	public final String inputName;
-
-	private enum Delimiters {
-		TAB("<tab>","\t"),
-		COMMA(",",","),
-		BAR("|","|"),
-		SPACE("<space>"," ");
-
-		String title;
-		String delimiter;
-
-		Delimiters(String title, String delimiter) {
-			this.title = title;
-			this.delimiter = delimiter;
-		}
-
-		public String toString() { return title; }
-		public String getDelimiter() { return delimiter; }
-	}
 
 	public Map<String, CyNode> nodeMap;
 	public CyNetwork finishedNetwork = null;

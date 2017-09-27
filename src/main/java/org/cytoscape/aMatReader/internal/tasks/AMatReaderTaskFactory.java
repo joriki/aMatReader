@@ -1,4 +1,4 @@
-package edu.ucsf.rbvi.aMatReader.internal.tasks;
+package org.cytoscape.aMatReader.internal.tasks;
 
 import java.io.InputStream;
 
@@ -13,25 +13,24 @@ import org.cytoscape.view.model.CyNetworkViewFactory;
 import org.cytoscape.work.TaskIterator;
 
 public class AMatReaderTaskFactory extends AbstractInputStreamTaskFactory {
-	public final CyFileFilter aMatFilter;
-	public final CyServiceRegistrar cyRegistrar;
-
+	private final CyNetworkViewFactory viewFactory;
+	private final CyNetworkFactory netFactory;
+	private final CyNetworkManager netManager;
+	private final CyRootNetworkManager netRootManager;
+	
 	public AMatReaderTaskFactory(final CyServiceRegistrar cyRegistrar, final CyFileFilter aMatFilter) {
 		super(aMatFilter);
-		this.aMatFilter = aMatFilter;
-		this.cyRegistrar = cyRegistrar;
+		
+		viewFactory = cyRegistrar.getService(CyNetworkViewFactory.class);
+		netFactory = cyRegistrar.getService(CyNetworkFactory.class);
+		netManager = cyRegistrar.getService(CyNetworkManager.class);
+		netRootManager = cyRegistrar.getService(CyRootNetworkManager.class);
 	}
 
 	@Override
 	public TaskIterator createTaskIterator(InputStream is, String inputName) {
-		CyNetworkViewFactory viewFactory = cyRegistrar.getService(CyNetworkViewFactory.class);
-		CyNetworkFactory netFactory = cyRegistrar.getService(CyNetworkFactory.class);
-		CyNetworkManager netManager = cyRegistrar.getService(CyNetworkManager.class);
-		CyRootNetworkManager netRootManager = cyRegistrar.getService(CyRootNetworkManager.class);
-
-		TaskIterator ti = new TaskIterator(new AMatReaderTask(is, inputName, viewFactory, netFactory,
+		return new TaskIterator(new AMatReaderTask(is, inputName, viewFactory, netFactory,
 		                                                     netManager, netRootManager));
-		return ti;
 	}
 
 }

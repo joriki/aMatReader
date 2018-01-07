@@ -1,27 +1,31 @@
 package org.cytoscape.aMatReader.internal;
 
-import static org.cytoscape.work.ServiceProperties.COMMAND;
-// Commented out until 3.2 is released
-import static org.cytoscape.work.ServiceProperties.COMMAND_DESCRIPTION;
-import static org.cytoscape.work.ServiceProperties.COMMAND_NAMESPACE;
 import static org.cytoscape.work.ServiceProperties.ID;
+import static org.cytoscape.work.ServiceProperties.PREFERRED_MENU;
+import static org.cytoscape.work.ServiceProperties.IN_MENU_BAR;
+import static org.cytoscape.work.ServiceProperties.MENU_GRAVITY;
+import static org.cytoscape.work.ServiceProperties.TITLE;
+
 import java.util.Properties;
 
+import javax.swing.JFrame;
+
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource;
+import org.cytoscape.aMatReader.internal.tasks.AMatReaderDialogAction;
 import org.cytoscape.aMatReader.internal.tasks.AMatReaderTaskFactory;
-import org.cytoscape.ci.CIErrorFactory;
-import org.cytoscape.ci.CIResponseFactory;
+import org.cytoscape.app.swing.CySwingAppAdapter;
+import org.cytoscape.application.swing.CyAction;
+import org.cytoscape.application.swing.CySwingApplication;
 import org.cytoscape.io.BasicCyFileFilter;
 import org.cytoscape.io.DataCategory;
 import org.cytoscape.io.read.InputStreamTaskFactory;
 import org.cytoscape.io.util.StreamUtil;
-import org.cytoscape.work.SynchronousTaskManager;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.service.util.AbstractCyActivator;
 import org.osgi.framework.BundleContext;
 
 public class CyActivator extends AbstractCyActivator {
-
+	public static JFrame PARENT_FRAME;
 	public CyActivator() {
 		super();
 	}
@@ -29,26 +33,28 @@ public class CyActivator extends AbstractCyActivator {
 	public void start(BundleContext bc) {
 		final StreamUtil streamUtil = getService(bc, StreamUtil.class);
 		final CyServiceRegistrar serviceRegistrar = getService(bc, CyServiceRegistrar.class);
-
-		SynchronousTaskManager<?> taskManager = getService(bc, SynchronousTaskManager.class);
-
-		CIResponseFactory ciResponseFactory = this.getService(bc, CIResponseFactory.class);
-		CIErrorFactory ciErrorFactory = this.getService(bc, CIErrorFactory.class);
-
-		// ///////////////// Readers ////////////////////////////
-		final BasicCyFileFilter aMatFileFilter = new BasicCyFileFilter(new String[] { "mat", "adj" },
+		CySwingApplication swingApp = getService(bc, CySwingApplication.class);
+		PARENT_FRAME = swingApp.getJFrame();
+		
+		// Register AMatReader input stream with file filter
+		// Register CyAction menu item that opens the dialog
+		final BasicCyFileFilter aMatFileFilter = new BasicCyFileFilter(new String[] { "mat", "adj"},
 				new String[] { "application/text" }, "Adjacency Matrix Reader", DataCategory.NETWORK, streamUtil);
-		final AMatReaderTaskFactory aMatReaderFactory = new AMatReaderTaskFactory(serviceRegistrar, aMatFileFilter);
-
-		Properties aMatReaderProps = new Properties();
-		aMatReaderProps.put(ID, "aMatNetworkReaderFactory");
-		aMatReaderProps.setProperty(COMMAND_NAMESPACE, "network");
-		aMatReaderProps.setProperty(COMMAND, "import");
-		aMatReaderProps.setProperty(COMMAND_DESCRIPTION, "Import a network from an adjacency matrix file");
-		//registerService(bc, aMatReaderFactory, InputStreamTaskFactory.class, aMatReaderProps);
-
-		AMatReaderResource resource = new AMatReaderResource(taskManager, aMatReaderFactory, ciResponseFactory,
-				ciErrorFactory);
-		registerService(bc, resource, AMatReaderResource.class, new Properties());
+		AMatReaderTaskFactory readerTF = new AMatReaderTaskFactory(serviceRegistrar, aMatFileFilter);
+		registerService(bc, readerTF, InputStreamTaskFactory.class);
+		
+		Properties aMatReaderDialogProps = new Properties();
+		aMatReaderDialogProps.put(ID, "aMatReaderDialogFactory");
+		aMatReaderDialogProps.put(PREFERRED_MENU, "aMatReader");
+		aMatReaderDialogProps.put(TITLE, "Import Adjacenct Matrices");
+		aMatReaderDialogProps.put(MENU_GRAVITY,  10.0);
+		aMatReaderDialogProps.put(IN_MENU_BAR, true);
+		
+		AMatReaderDialogAction dialogAction = new AMatReaderDialogAction(serviceRegistrar);
+		registerService(bc, dialogAction, CyAction.class, aMatReaderDialogProps);
+		
+		AMatReaderResource resource = new AMatReaderResource(serviceRegistrar, readerTF);
+		registerService(bc, resource, AMatReaderResource.class);
+		
 	}
 }

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 import javax.ws.rs.core.Response;
 
-import org.cytoscape.aMatReader.internal.tasks.AMatReaderParameters;
+import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.ci.model.CIError;
 import org.cytoscape.ci.model.CIResponse;
 import org.cytoscape.work.FinishStatus;
@@ -16,19 +16,19 @@ public class AMatReaderTaskObserver implements TaskObserver {
 	/**
 	 * 
 	 */
-	private final AMatReaderResource copyLayoutResource;
+	private final AMatReaderResource aMatReaderResource;
 	CIResponse<?> response;
 
 	public CIResponse<?> getResponse() {
 		return response;
 	}
 
-	private AMatReaderParameters result;
+	private AMatReaderResponse result;
 	private String resourcePath;
 	private String errorCode;
 
-	public AMatReaderTaskObserver(AMatReaderResource copyLayoutResource, String resourcePath, String errorCode) {
-		this.copyLayoutResource = copyLayoutResource;
+	public AMatReaderTaskObserver(AMatReaderResource aMatReaderResource, String resourcePath, String errorCode) {
+		this.aMatReaderResource = aMatReaderResource;
 		response = null;
 		this.resourcePath = resourcePath;
 		this.errorCode = errorCode;
@@ -37,12 +37,12 @@ public class AMatReaderTaskObserver implements TaskObserver {
 	@SuppressWarnings("unchecked")
 	public void allFinished(FinishStatus arg0) {
 		if (arg0.getType() == FinishStatus.Type.SUCCEEDED || arg0.getType() == FinishStatus.Type.CANCELLED) {
-			response = new CIResponse<AMatReaderParameters>();
+			response = new CIResponse<AMatReaderResponse>();
 			
-			((CIResponse<AMatReaderParameters>) response).data = result;
+			((CIResponse<AMatReaderResponse>) response).data = result;
 			response.errors = new ArrayList<CIError>();
 		} else {
-			response = this.copyLayoutResource.buildCIErrorResponse(
+			response = this.aMatReaderResource.buildCIErrorResponse(
 					Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), resourcePath, errorCode,
 					arg0.getException().getMessage(), arg0.getException());
 		}
@@ -51,12 +51,6 @@ public class AMatReaderTaskObserver implements TaskObserver {
 
 	
 	public void taskFinished(ObservableTask arg0) {
-		AMatReaderParameters res = arg0.getResults(AMatReaderParameters.class);
-		result = res;
-	}
-
-	public int getNumNodesCreated() {
-		// TODO Auto-generated method stub
-		return 0;
+		result = arg0.getResults(AMatReaderResponse.class);
 	}
 }

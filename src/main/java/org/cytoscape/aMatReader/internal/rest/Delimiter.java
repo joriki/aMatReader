@@ -1,15 +1,15 @@
 package org.cytoscape.aMatReader.internal.rest;
 
-public enum Delimiters {
+public enum Delimiter {
 	TAB("<tab>","\t"),
 	COMMA(",",","),
-	BAR("|","|"),
+	BAR("|","\\|"),
 	SPACE("<space>"," ");
 
 	String title;
 	String delimiter;
 
-	Delimiters(String title, String delimiter) {
+	Delimiter(String title, String delimiter) {
 		this.title = title;
 		this.delimiter = delimiter;
 	}

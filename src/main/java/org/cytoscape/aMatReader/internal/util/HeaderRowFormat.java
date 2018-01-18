@@ -1,14 +1,14 @@
-package org.cytoscape.aMatReader.internal.rest;
+package org.cytoscape.aMatReader.internal.util;
 
-public enum ColumnHeadersFormat {
-	//AUTO("Automatic"),
+public enum HeaderRowFormat {
+	
 	NAMES("First row contains node names"),
 	IGNORE("Skip first row"),
 	NONE("No header row");
 
 	String title;
 
-	ColumnHeadersFormat(String title) {
+	HeaderRowFormat(String title) {
 		this.title = title;
 	}
 	

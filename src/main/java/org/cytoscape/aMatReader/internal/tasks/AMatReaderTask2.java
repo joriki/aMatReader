@@ -5,16 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-
-import javax.swing.SwingUtilities;
 
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
 import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
 import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
 import org.cytoscape.aMatReader.internal.ResourceManager;
-import org.cytoscape.io.read.AbstractCyNetworkReader;
+import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
@@ -24,6 +23,7 @@ import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CySubNetwork;
 import org.cytoscape.view.layout.CyLayoutAlgorithm;
 import org.cytoscape.view.model.CyNetworkView;
+import org.cytoscape.work.AbstractTask;
 import org.cytoscape.work.ObservableTask;
 import org.cytoscape.work.ProvidesTitle;
 import org.cytoscape.work.TaskIterator;
@@ -31,12 +31,14 @@ import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.Tunable;
 import org.cytoscape.work.util.ListSingleSelection;
 
-public class AMatReaderTask extends AbstractCyNetworkReader implements ObservableTask {
+public class AMatReaderTask2 extends AbstractTask implements CyNetworkReader, ObservableTask {
 	private String columnName;
 	private CyRootNetwork rootNetwork;
 	private AMatReaderResponse result;
 	private boolean createView = false;
 	private final Map<Object, CyNode> nodeMap;
+	private final InputStream inputStream;
+	private CyNetwork resultNetwork;
 
 	private final ResourceManager rm;
 
@@ -72,10 +74,11 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 		return "Adjacency Matrix Reader";
 	}
 
-	public AMatReaderTask(final InputStream inputStream, final String name, final ResourceManager rm) {
-		super(inputStream, rm.viewFactory, rm.netFactory, rm.netManager, rm.netRootManager);
-		rootNetwork = getRootNetwork();
-		nodeMap = getNodeMap();
+	public AMatReaderTask2(final InputStream inputStream, final String name, final ResourceManager rm) {
+		super();
+		this.inputStream = inputStream;
+		rootNetwork = null;
+		nodeMap = new HashMap<Object, CyNode>();
 
 		columnName = getBaseName(name);
 		this.rm = rm;
@@ -90,11 +93,12 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 		return shortName;
 	}
 
-	public AMatReaderTask(final CyRootNetwork rootNetwork, final InputStream inputStream, final String name,
+	public AMatReaderTask2(final CyRootNetwork rootNetwork, final InputStream inputStream, final String name,
 			final ResourceManager rm) {
-		super(inputStream, rm.viewFactory, rm.netFactory, rm.netManager, rm.netRootManager);
+		super();
+		this.inputStream = inputStream;
 		this.rootNetwork = rootNetwork;
-		nodeMap = getNodeMap();
+		nodeMap = new HashMap<Object, CyNode>();
 
 		columnName = getBaseName(name);
 		this.rm = rm;
@@ -120,8 +124,6 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 
 	@Override
 	public void run(TaskMonitor taskMonitor) throws InvocationTargetException, InterruptedException, IOException {
-		if (rootNetwork == null)
-			rootNetwork = getRootNetwork();
 
 		Delimiter delim = delimiter.getSelectedValue();
 		HeaderColumnFormat headerColumn = this.headerColumn.getSelectedValue();
@@ -131,35 +133,46 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 				headerRow);
 		final CyNetwork network;
 
-		if (rootNetwork != null) {
-			if (rootNetwork.getSubNetworkList().size() > 0) {
-				network = rootNetwork.getSubNetworkList().get(0);
-			} else {
-				network = rootNetwork.addSubNetwork();
-				String netName = rm.naming.getSuggestedSubnetworkTitle(network);
-				network.getRow(network).set(CyNetwork.NAME, netName);
-			}
-			String keyColumn = getTargetColumnList().getSelectedValue();
-			if (keyColumn == null)
-				keyColumn = CyNetwork.NAME;
+		if (rootNetwork == null) {
+			network = rm.netFactory.createNetwork();
 
+		} else {
+			network = rootNetwork.addSubNetwork();
 			for (CyNode node : rootNetwork.getNodeList()) {
-				String key = rootNetwork.getRow(node).get(keyColumn, String.class);
+				String key = rootNetwork.getRow(node).get(CyNetwork.NAME, String.class);
 				nodeMap.put(key, node);
 			}
 			for (CyNode node : network.getNodeList()) {
-				String key = rootNetwork.getRow(node).get(keyColumn, String.class);
+				String key = rootNetwork.getRow(node).get(CyNetwork.NAME, String.class);
 				nodeMap.put(key, node);
 			}
-		} else {
-			network = cyNetworkFactory.createNetwork();
-			String netName = rm.naming.getSuggestedNetworkTitle(columnName);
-			network.getRow(network).set(CyNetwork.NAME, netName);
-			networks = new CyNetwork[] { network };
-			rm.netManager.addNetwork(network);
-			createView = network.getEdgeCount() < 10000;
 		}
+		String netName = rm.naming.getSuggestedNetworkTitle(columnName);
+		network.getRow(network).set(CyNetwork.NAME, netName);
+		createView = network.getEdgeCount() < 10000;
+		resultNetwork = network;
+		rm.netManager.addNetwork(network);
 
+		/*
+		 * if (rootNetwork != null) { if (rootNetwork.getSubNetworkList().size()
+		 * > 0) { network = rootNetwork.getSubNetworkList().get(0); } else {
+		 * network = rootNetwork.addSubNetwork(); String netName =
+		 * rm.naming.getSuggestedSubnetworkTitle(network);
+		 * network.getRow(network).set(CyNetwork.NAME, netName); } String
+		 * keyColumn = CyNetwork.NAME;
+		 * 
+		 * 
+		 * for (CyNode node : rootNetwork.getNodeList()) { String key =
+		 * rootNetwork.getRow(node).get(keyColumn, String.class);
+		 * nodeMap.put(key, node); } for (CyNode node : network.getNodeList()) {
+		 * String key = rootNetwork.getRow(node).get(keyColumn, String.class);
+		 * nodeMap.put(key, node); } } else { network =
+		 * rm.netFactory.createNetwork(); String netName =
+		 * rm.naming.getSuggestedNetworkTitle(columnName);
+		 * network.getRow(network).set(CyNetwork.NAME, netName); resultNetwork =
+		 * network; rm.netManager.addNetwork(network); createView =
+		 * network.getEdgeCount() < 10000; }
+		 */
 		createColumns(network);
 		for (int i = 0; i < parser.sourceCount(); i++) {
 			createNode(network, parser.getSourceName(i), SOURCE_NAME);
@@ -187,17 +200,21 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 
 		rm.eventHelper.flushPayloadEvents();
 		result = new AMatReaderResponse(network.getSUID(), newEdgeCount, updatedEdgeCount);
-		SwingUtilities.invokeLater(new Runnable() {
 
-			@Override
-			public void run() {
-				buildCyNetworkView(network);
-			}
-
-		});
+		if (createView)
+			layoutNetwork(network);
 
 		taskMonitor.setProgress(1.0);
 
+	}
+
+	private void layoutNetwork(CyNetwork network) {
+		CyNetworkView view = buildCyNetworkView(network);
+		System.out.println(view);
+		CyLayoutAlgorithm algor = rm.layoutManager.getDefaultLayout();
+		TaskIterator itr = algor.createTaskIterator(view, algor.createLayoutContext(), CyLayoutAlgorithm.ALL_NODE_VIEWS,
+				null);
+		insertTasksAfterCurrentTask(itr);
 	}
 
 	CyNode createNode(CyNetwork net, String name, String type) {
@@ -271,26 +288,14 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 		if (network == null) {
 			return null;
 		}
-		CyNetworkView resView = null;
 		Collection<CyNetworkView> views = rm.viewManager.getNetworkViews(network);
-
-		if (views.size() > 0)
-			resView = views.iterator().next();
-
-		if (resView == null && createView) {
-			resView = rm.viewFactory.createNetworkView(network);
+		if (!views.isEmpty()) {
+			return views.iterator().next();
 		}
-		final CyNetworkView view = resView;
-		SwingUtilities.invokeLater(new Runnable() {
+		CyNetworkView resView = rm.viewFactory.createNetworkView(network);
 
-			@Override
-			public void run() {
-				CyLayoutAlgorithm algor = rm.layoutManager.getDefaultLayout();
-				TaskIterator itr = algor.createTaskIterator(view, algor.createLayoutContext(),
-						CyLayoutAlgorithm.ALL_NODE_VIEWS, null);
-				insertTasksAfterCurrentTask(itr);
-			}
-		});
+		if (createView || !views.contains(resView))
+			rm.viewManager.addNetworkView(resView);
 
 		return resView;
 	}
@@ -299,5 +304,11 @@ public class AMatReaderTask extends AbstractCyNetworkReader implements Observabl
 	@Override
 	public <R> R getResults(Class<? extends R> type) {
 		return (R) result;
+	}
+
+	@Override
+	public CyNetwork[] getNetworks() {
+		// TODO Auto-generated method stub
+		return new CyNetwork[] { resultNetwork };
 	}
 }

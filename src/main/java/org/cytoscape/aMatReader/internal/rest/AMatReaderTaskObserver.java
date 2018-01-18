@@ -16,7 +16,7 @@ public class AMatReaderTaskObserver implements TaskObserver {
 	/**
 	 * 
 	 */
-	private final AMatReaderResource aMatReaderResource;
+	private final AMatReaderResourceImpl aMatReaderResource;
 	CIResponse<?> response;
 
 	public CIResponse<?> getResponse() {
@@ -27,7 +27,7 @@ public class AMatReaderTaskObserver implements TaskObserver {
 	private String resourcePath;
 	private String errorCode;
 
-	public AMatReaderTaskObserver(AMatReaderResource aMatReaderResource, String resourcePath, String errorCode) {
+	public AMatReaderTaskObserver(AMatReaderResourceImpl aMatReaderResource, String resourcePath, String errorCode) {
 		this.aMatReaderResource = aMatReaderResource;
 		response = null;
 		this.resourcePath = resourcePath;
@@ -38,7 +38,7 @@ public class AMatReaderTaskObserver implements TaskObserver {
 	public void allFinished(FinishStatus arg0) {
 		if (arg0.getType() == FinishStatus.Type.SUCCEEDED || arg0.getType() == FinishStatus.Type.CANCELLED) {
 			response = new CIResponse<AMatReaderResponse>();
-			
+
 			((CIResponse<AMatReaderResponse>) response).data = result;
 			response.errors = new ArrayList<CIError>();
 		} else {
@@ -46,10 +46,9 @@ public class AMatReaderTaskObserver implements TaskObserver {
 					Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), resourcePath, errorCode,
 					arg0.getException().getMessage(), arg0.getException());
 		}
-		
+
 	}
 
-	
 	public void taskFinished(ObservableTask arg0) {
 		result = arg0.getResults(AMatReaderResponse.class);
 	}

@@ -1,4 +1,4 @@
-package org.cytoscape.aMatReader.internal.rest;
+package org.cytoscape.aMatReader.internal.util;
 
 public enum Delimiter {
 	TAB("<tab>","\t"),

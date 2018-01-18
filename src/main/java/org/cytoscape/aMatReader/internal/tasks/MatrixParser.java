@@ -12,22 +12,23 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-import org.cytoscape.aMatReader.internal.rest.ColumnHeadersFormat;
-import org.cytoscape.aMatReader.internal.rest.Delimiter;
-import org.cytoscape.aMatReader.internal.rest.RowHeadersFormat;
+import org.cytoscape.aMatReader.internal.util.Delimiter;
+import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
+import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
 
 public class MatrixParser {
 	private final Vector<String> sourceNames, targetNames;
 	private final HashMap<Integer, Map<Integer, Double>> edgeMap;
+	private final boolean ignoreZeros;
 
-	public MatrixParser(InputStream is, Delimiter delim, boolean undirected, RowHeadersFormat rowHeaders,
-			ColumnHeadersFormat columnHeaders) {
-		
+	public MatrixParser(InputStream is, Delimiter delim, boolean undirected, boolean ignoreZeros,
+			HeaderColumnFormat headerColumn, HeaderRowFormat headerRow) {
+		this.ignoreZeros = ignoreZeros;
 		sourceNames = new Vector<String>();
 		targetNames = new Vector<String>();
 		edgeMap = new HashMap<Integer, Map<Integer, Double>>();
 
-		importFile(is, delim, undirected, columnHeaders, rowHeaders);
+		importFile(is, delim, undirected, headerColumn, headerRow);
 	}
 
 	public int edgeCount() {
@@ -42,12 +43,12 @@ public class MatrixParser {
 	public String getSourceName(int i) {
 		return sourceNames.get(i);
 	}
-	
-	public int sourceCount(){
+
+	public int sourceCount() {
 		return sourceNames.size();
 	}
-	
-	public int targetCount(){
+
+	public int targetCount() {
 		return targetNames.size();
 	}
 
@@ -59,7 +60,6 @@ public class MatrixParser {
 		return edgeMap;
 	}
 
-	
 	public void readColumnHeaders(String[] names) {
 		for (String name : names) {
 			if (name.length() > 0)
@@ -67,50 +67,49 @@ public class MatrixParser {
 		}
 	}
 
-	public Map<Integer, Double> parseRow(String[] row, int d) {
+	public Map<Integer, Double> parseRow(String[] row, int start) {
 		Map<Integer, Double> tgtMap = new HashMap<Integer, Double>();
-		for (int index = 0; index + d < row.length; index++) {
-			Double value = getValue(row[index + d]);
-			if (value != null)
-				tgtMap.put(index, value);
+		for (int index = 0; index + start < row.length; index++) {
+			Double value = getValue(row[index + start]);
+			if (value != null && !(ignoreZeros && value == 0)){
+				tgtMap.put(index + start - 1, value);
+			}
 		}
 		return tgtMap;
 	}
 
-	public void importFile(InputStream is, Delimiter delim, boolean undirected, ColumnHeadersFormat columnHeaders,
-			RowHeadersFormat rowHeaders) {
+	public void importFile(InputStream is, Delimiter delim, boolean undirected, HeaderColumnFormat headerColumn,
+			HeaderRowFormat headerRow) {
 
 		BufferedReader input = new BufferedReader(new InputStreamReader(is));
 		try {
 			String[] row;
 			int rowNumber = 0;
-			boolean header = columnHeaders == ColumnHeadersFormat.NONE;
+			boolean pastHeader = headerRow == HeaderRowFormat.NONE;
 			while ((row = readRow(input, delim)) != null) {
 				if (row.length == 0)
 					continue;
-				if (rowNumber == 0 && !header) {
-					if (columnHeaders == ColumnHeadersFormat.NAMES) {
+				if (rowNumber == 0 && !pastHeader) {
+					if (headerRow == HeaderRowFormat.NAMES) {
 						readColumnHeaders(row);
 					}
-					header = true;
+					pastHeader = true;
 					continue;
 				} else {
-					String name = "Node" + rowNumber;
-					if (rowHeaders == RowHeadersFormat.NAMES)
+					String name = "Node " + rowNumber;
+					if (headerColumn == HeaderColumnFormat.NAMES)
 						name = row[0];
-					else if (columnHeaders == ColumnHeadersFormat.NAMES)
+					else if (headerRow == HeaderRowFormat.NAMES)
 						name = targetNames.get(rowNumber);
 					sourceNames.add(name);
-					int start = rowHeaders == RowHeadersFormat.NONE ? 0 : 1;
-					if (undirected){
+					int start = headerColumn == HeaderColumnFormat.NONE ? 0 : 1;
+					if (undirected) {
 						start += rowNumber;
 					}
-					//Map<Integer, Double> tgtMap = parseRow(row, rowHeaders);
 					Map<Integer, Double> tgtMap = parseRow(row, start);
 
-					if (columnHeaders != ColumnHeadersFormat.NAMES)
+					if (headerRow != HeaderRowFormat.NAMES)
 						targetNames.add(name);
-					//System.out.printf("%d -> %d edges\n", rowNumber, tgtMap.size());
 					edgeMap.put(rowNumber, tgtMap);
 				}
 				rowNumber++;
@@ -151,14 +150,13 @@ public class MatrixParser {
 	}
 
 	public static void main(String[] args) throws FileNotFoundException {
-		InputStream inputStream = new FileInputStream("/Users/bsettle/Desktop/adjs/qval_orig.txt");
-		MatrixParser parser = new MatrixParser(inputStream, Delimiter.TAB, true, RowHeadersFormat.NAMES,
-				ColumnHeadersFormat.IGNORE);
+		InputStream inputStream = new FileInputStream("/Users/bsettle/Desktop/adjs/sample.mat");
+		MatrixParser parser = new MatrixParser(inputStream, Delimiter.TAB, true, true, HeaderColumnFormat.IGNORE,
+				HeaderRowFormat.IGNORE);
 
 		System.out.println(parser.sourceNames.size() + " sources");
 		System.out.println(parser.targetNames.size() + " targets");
-		
-		
+
 		for (int src : parser.edgeMap.keySet()) {
 			Map<Integer, Double> map = parser.edgeMap.get(src);
 			// System.out.println(src);
@@ -169,17 +167,19 @@ public class MatrixParser {
 				System.out.printf("%s - %s: %f\n", srcName, tgtName, value);
 			}
 		}
-		
+
 	}
 
 	public static Delimiter predictDelimiter(File file) throws IOException {
 		BufferedReader reader = new BufferedReader(new FileReader(file));
 		String line1 = reader.readLine();
+		while (line1.startsWith("#"))
+			line1 = reader.readLine();
 		int max = 0;
 		Delimiter delimiter = Delimiter.TAB;
-		for (Delimiter delim : Delimiter.values()){
-			int n = line1.split(delim.getDelimiter()).length;
-			if (n > max){
+		for (Delimiter delim : Delimiter.values()) {
+			int n = line1.split(delim.getDelimiter(), -1).length;
+			if (n > max) {
 				delimiter = delim;
 				max = n;
 			}

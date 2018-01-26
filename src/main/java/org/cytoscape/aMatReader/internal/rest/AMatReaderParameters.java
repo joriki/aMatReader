@@ -24,6 +24,9 @@ public class AMatReaderParameters {
 	
 	@ApiModelProperty(value = "Treat edges as undirected", example="false", required=false)
 	public boolean undirected = false;
+	
+	@ApiModelProperty(value = "Ignore zero values", example="false", required=false)
+	public boolean ignoreZeros = false;
 
 	@ApiModelProperty(value = "Interaction type", example = "interacts with", required=false)
 	public String interactionName = "interacts with";
@@ -33,6 +36,8 @@ public class AMatReaderParameters {
 	
 	@ApiModelProperty(value="Target Header Row", required=false)
 	public HeaderRowFormat headerRow = HeaderRowFormat.NAMES;
+
+	
 	
 	
 	

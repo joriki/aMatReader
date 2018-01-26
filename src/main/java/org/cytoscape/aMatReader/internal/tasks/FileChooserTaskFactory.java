@@ -4,16 +4,15 @@ import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.work.AbstractTaskFactory;
 import org.cytoscape.work.TaskIterator;
 
-public class AMatReaderDialogTaskFactory extends AbstractTaskFactory {
-	private final ResourceManager resourceManager;
-
-	public AMatReaderDialogTaskFactory(final ResourceManager resourceManager) {
-		super();
+public class FileChooserTaskFactory extends AbstractTaskFactory{
+	
+	final ResourceManager resourceManager;
+	public FileChooserTaskFactory(final ResourceManager resourceManager){
 		this.resourceManager = resourceManager;
 	}
-
 	@Override
 	public TaskIterator createTaskIterator() {
-		return new TaskIterator(new AMatReaderDialogTask(resourceManager));
+		return new TaskIterator(new FileChooserTask(resourceManager));
 	}
+
 }

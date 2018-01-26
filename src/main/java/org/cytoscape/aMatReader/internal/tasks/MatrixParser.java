@@ -71,7 +71,7 @@ public class MatrixParser {
 		Map<Integer, Double> tgtMap = new HashMap<Integer, Double>();
 		for (int index = 0; index + start < row.length; index++) {
 			Double value = getValue(row[index + start]);
-			if (value != null && !(ignoreZeros && value == 0)){
+			if (value != null && !(ignoreZeros && value == 0)) {
 				tgtMap.put(index + start - 1, value);
 			}
 		}

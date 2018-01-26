@@ -1,11 +1,11 @@
 package org.cytoscape.aMatReader.internal.tasks;
 
 import java.awt.BorderLayout;
-import java.awt.Dialog.ModalityType;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -14,56 +14,53 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.HashSet;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
-import javax.swing.filechooser.FileFilter;
-import javax.swing.plaf.basic.BasicArrowButton;
-
 import org.cytoscape.aMatReader.internal.CyActivator;
 import org.cytoscape.aMatReader.internal.ResourceManager;
+import org.cytoscape.aMatReader.internal.rest.AMatReaderParameters;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
 import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
 import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
-import org.cytoscape.app.swing.AbstractCySwingApp;
+import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyNetwork;
-import org.cytoscape.model.subnetwork.CyRootNetwork;
-import org.cytoscape.model.subnetwork.CySubNetwork;
 import org.cytoscape.util.swing.LookAndFeelUtil;
-import org.cytoscape.view.layout.CyLayoutAlgorithm;
 import org.cytoscape.view.model.CyNetworkView;
+import org.cytoscape.work.AbstractTask;
 import org.cytoscape.work.ObservableTask;
 import org.cytoscape.work.ProvidesTitle;
 import org.cytoscape.work.SynchronousTaskManager;
 import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.TaskMonitor;
 
-public class AMatReaderDialogTask extends AbstractCySwingApp implements ObservableTask {
+public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkReader, ObservableTask {
+
 	private AMatReaderResponse result;
 
-	public CyNetwork finishedNetwork = null;
-
-	private JFileChooser chooser;
 	private JDialog optionsDialog;
 	private JButton importButton;
 	private JComboBox<Delimiter> delimiterComboBox;
 	private JComboBox<HeaderColumnFormat> headerColumnComboBox;
 	private JComboBox<HeaderRowFormat> headerRowComboBox;
 	private JPanel optionsPanel, advancedPanel;
-	private JComboBox<RootWrapper> rootNetworks;
+	private JComboBox<NetworkWrapper> networkCombo;
 	private JCheckBox undirectedCheckBox, ignoreZerosCheckbox;
 	private JTextField interactionEntry, collectionEntry;
+
+	private final File[] files;
+	private final InputStream inputStream;
+	private final String name;
 
 	@ProvidesTitle
 	public String getTitle() {
@@ -73,36 +70,43 @@ public class AMatReaderDialogTask extends AbstractCySwingApp implements Observab
 	final ResourceManager resourceManager;
 	final SynchronousTaskManager<?> taskManager;
 
-	private CyRootNetwork[] getRootNetworks() {
-		HashSet<CyRootNetwork> roots = new HashSet<CyRootNetwork>();
-		for (CyNetwork net : resourceManager.netManager.getNetworkSet()) {
-			roots.add(((CySubNetwork) net).getRootNetwork());
-		}
-		CyRootNetwork rootArray[] = new CyRootNetwork[roots.size()];
-		roots.toArray(rootArray);
-		return rootArray;
+	public AMatReaderWrapperTask(InputStream inputStream, String name, ResourceManager rm) {
+		super();
+		this.name = name;
+		taskManager = rm.cyRegistrar.getService(SynchronousTaskManager.class);
+		this.resourceManager = rm;
+		files = new File[0];
+		this.inputStream = inputStream;
 	}
 
-	private class RootWrapper {
-		private CyRootNetwork root;
+	public AMatReaderWrapperTask(File[] files, String name, ResourceManager rm) {
+		super();
+		this.name = name;
+		taskManager = rm.cyRegistrar.getService(SynchronousTaskManager.class);
+		this.resourceManager = rm;
+		this.files = files;
+		this.inputStream = null;
+	}
 
-		private RootWrapper(CyRootNetwork root) {
-			this.root = root;
+	@Override
+	public CyNetworkView buildCyNetworkView(CyNetwork network) {
+
+		return null;
+	}
+
+	private class NetworkWrapper {
+		private CyNetwork network;
+
+		private NetworkWrapper(CyNetwork network) {
+			this.network = network;
 		}
 
 		public String toString() {
-			if (root == null) {
+			if (network == null) {
 				return "-- Create new network collection --";
 			}
-			return root.getRow(root).get(CyRootNetwork.NAME, String.class);
+			return network.getRow(network).get(CyNetwork.NAME, String.class);
 		}
-	}
-
-	public AMatReaderDialogTask(final ResourceManager rm) {
-		super(rm.appAdapter);
-
-		resourceManager = rm;
-		taskManager = rm.cyRegistrar.getService(SynchronousTaskManager.class);
 	}
 
 	private JComboBox<Delimiter> getDelimiterComboBox() {
@@ -153,61 +157,6 @@ public class AMatReaderDialogTask extends AbstractCySwingApp implements Observab
 		return headerRowComboBox;
 	}
 
-	private JFileChooser getChooser() {
-		if (chooser == null) {
-			chooser = new JFileChooser();
-			chooser.setMultiSelectionEnabled(true);
-
-			// chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-			// chooser.setControlButtonsAreShown(false);
-			chooser.setAcceptAllFileFilterUsed(true);
-			chooser.setFileFilter(new FileFilter() {
-				String[] suffixes = new String[] { ".mat", ".adj", ".txt", ".tsv", ".csv" };
-
-				@Override
-				public String getDescription() {
-					return String.format("Adjacency Matrices (%s)", String.join(", ", suffixes));
-				}
-
-				@Override
-				public boolean accept(File f) {
-					String name = f.getName();
-					for (String suf : suffixes)
-						if (name.endsWith(suf))
-							return true;
-					return f.isDirectory();
-				}
-			});
-
-			chooser.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-			chooser.setApproveButtonText("Import files");
-		}
-		return chooser;
-	}
-
-	private File[] getMatrixFiles() {
-		int response = getChooser().showOpenDialog(CyActivator.PARENT_FRAME);
-		if (response == JFileChooser.APPROVE_OPTION)
-			return chooser.getSelectedFiles();
-		return new File[] {};
-	}
-
-	private String generateNewCollectionName(File[] files) throws Exception {
-		String name;
-		if (files.length == 0) {
-			throw new Exception("No files provided"); // this shouldn't happen
-		}
-		if (files.length > 1) {
-			name = files[0].getParentFile().getName();
-		} else {
-			name = files[0].getName();
-		}
-		if (name.contains("."))
-			name = name.substring(0, name.lastIndexOf("."));
-		return name;
-	}
-
 	private void addRow(JPanel panel, String s, JComponent component, int row) {
 		GridBagConstraints gbc = new GridBagConstraints();
 		int x = 0;
@@ -248,29 +197,31 @@ public class AMatReaderDialogTask extends AbstractCySwingApp implements Observab
 		return importButton;
 	}
 
-	private JComboBox<RootWrapper> getRootNetworkComboBox() {
-		if (rootNetworks == null) {
-			rootNetworks = new JComboBox<RootWrapper>();
-			rootNetworks.addItemListener(new ItemListener() {
+	private JComboBox<NetworkWrapper> getNetworkComboBox() {
+		if (networkCombo == null) {
+			networkCombo = new JComboBox<NetworkWrapper>();
+			networkCombo.addItemListener(new ItemListener() {
 				@Override
 				public void itemStateChanged(ItemEvent e) {
-					boolean nullRoot = ((RootWrapper) e.getItem()).root == null;
+					boolean nullRoot = ((NetworkWrapper) e.getItem()).network == null;
 					getCollectionEntry().setEnabled(nullRoot);
+					//if (!nullRoot)
+					//	getCollectionEntry().setText(((NetworkWrapper) e.getItem()).toString());
 				}
 			});
 
-			rootNetworks.addItem(new RootWrapper(null));
-			for (CyRootNetwork root : getRootNetworks()) {
-				rootNetworks.addItem(new RootWrapper(root));
+			networkCombo.addItem(new NetworkWrapper(null));
+			for (CyNetwork network : resourceManager.netManager.getNetworkSet()) {
+				networkCombo.addItem(new NetworkWrapper(network));
 			}
 
 		}
-		return rootNetworks;
+		return networkCombo;
 	}
 
 	private JTextField getCollectionEntry() {
 		if (collectionEntry == null) {
-			collectionEntry = new JTextField();
+			collectionEntry = new JTextField(name);
 		}
 		return collectionEntry;
 	}
@@ -347,71 +298,89 @@ public class AMatReaderDialogTask extends AbstractCySwingApp implements Observab
 	}
 
 	public void doImport() {
-		String collectionName = collectionEntry.getText();
-		boolean undirected = undirectedCheckBox.isSelected();
-		boolean ignoreZeros = ignoreZerosCheckbox.isSelected();
-		String interactionName = interactionEntry.getText();
-		Delimiter delimiter = (Delimiter) delimiterComboBox.getSelectedItem();
-		HeaderColumnFormat headerColumn = (HeaderColumnFormat) headerColumnComboBox.getSelectedItem();
-		HeaderRowFormat headerRow = (HeaderRowFormat) headerRowComboBox.getSelectedItem();
 
-		File[] files = chooser.getSelectedFiles();
+		AMatReaderParameters params = new AMatReaderParameters();
+		params.delimiter = (Delimiter) delimiterComboBox.getSelectedItem();
+		params.filename = collectionEntry.getText();
+		params.headerColumn = (HeaderColumnFormat) headerColumnComboBox.getSelectedItem();
+		params.headerRow = (HeaderRowFormat) headerRowComboBox.getSelectedItem();
+		params.interactionName = interactionEntry.getText();
+		params.undirected = undirectedCheckBox.isSelected();
+		params.ignoreZeros = ignoreZerosCheckbox.isSelected();
 
-		RootWrapper rootWrapper = (RootWrapper) rootNetworks.getSelectedItem();
-		CyNetworkView view = null;
-		for (File f : files) {
-			try {
-				InputStream is = new FileInputStream(f);
+		NetworkWrapper networkWrapper = (NetworkWrapper) networkCombo.getSelectedItem();
+		CyNetwork net = networkWrapper.network;
+		
+		if (files.length > 0) {
 
-				AMatReaderTask2 task;
-				if (rootWrapper.root != null) {
-					task = new AMatReaderTask2(rootWrapper.root, is, f.getName(), resourceManager);
-				} else {
-					task = new AMatReaderTask2(is, f.getName(), resourceManager);
+			for (File f : files) {
+				try {
+					InputStream is = new FileInputStream(f);
+
+					net = importMatrix(net, is, params);
+
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					System.out.println("Matrix file could not be found.");
 				}
 
-				task.headerRow.setSelectedValue(headerRow);
-				task.headerColumn.setSelectedValue(headerColumn);
-				task.delimiter.setSelectedValue(delimiter);
-				task.interactionName = interactionName;
-				task.undirected = undirected;
-				task.ignoreZeros = ignoreZeros;
-
-				// taskManager.setExecutionContext(context);
-				taskManager.execute(new TaskIterator(task));
-
-				if (rootWrapper.root == null) {
-					if (task.getNetworks() != null && task.getNetworks().length > 0) {
-
-						CyNetwork net = task.getNetworks()[0];
-						resourceManager.netManager.addNetwork(net);
-						view = task.buildCyNetworkView(net);
-
-						CyRootNetwork root = ((CySubNetwork) net).getRootNetwork();
-						rootWrapper = new RootWrapper(root);
-						if (files.length > 1) {
-							net.getRow(net).set(CyNetwork.NAME, collectionName);
-						}
-					} else {
-						System.out.println("No resulting network?");
-					}
-				}
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				System.out.println("Matrix file could not be found.");
 			}
+		} else {
+			net = importMatrix(net, inputStream, params);
 		}
-		layoutView(view);
+
+		/*
+		 * final CyNetworkView toLayout = view; SwingUtilities.invokeLater(new
+		 * Runnable(){
+		 * 
+		 * @Override public void run() { 
+		 * 
+		CyLayoutAlgorithm algor = resourceManager.layoutManager.getDefaultLayout();
+		String layoutAttribute = CyNetwork.NAME;
+		Object context = algor.getDefaultLayoutContext();
+		TaskIterator itr = algor.createTaskIterator(toLayout, context, CyLayoutAlgorithm.ALL_NODE_VIEWS, layoutAttribute);
+		taskManager.execute(itr);
+		}
+		 * 
+		 * });
+		 */
 
 		optionsDialog.setVisible(false);
 	}
 
-	private void layoutView(CyNetworkView view) {
-		CyLayoutAlgorithm algor = resourceManager.layoutManager.getDefaultLayout();
-		TaskIterator itr = algor.createTaskIterator(view, algor.createLayoutContext(), CyLayoutAlgorithm.ALL_NODE_VIEWS,
-				null);
-		taskManager.execute(itr);
+	private CyNetwork importMatrix(CyNetwork network, InputStream is, AMatReaderParameters params) {
+
+		AMatReaderTask task;
+		if (network != null) {
+			task = new AMatReaderTask(network, is, params.filename, resourceManager);
+		} else {
+			task = new AMatReaderTask(is, params.filename, resourceManager);
+		}
+
+		task.headerRow.setSelectedValue(params.headerRow);
+		task.headerColumn.setSelectedValue(params.headerColumn);
+		task.delimiter.setSelectedValue(params.delimiter);
+		task.undirected = params.undirected;
+		task.ignoreZeros = params.ignoreZeros;
+		task.interactionName = params.interactionName;
+
+		// taskManager.setExecutionContext(context);
+		taskManager.execute(new TaskIterator(task));
+
+		if (network == null) {
+			if (task.getNetworks() != null && task.getNetworks().length > 0) {
+
+				CyNetwork net = task.getNetworks()[0];
+				resourceManager.netManager.addNetwork(net);
+				network = net;
+
+			} else {
+				System.out.println("No resulting network?");
+			}
+		}
+		return network;
+		//task.buildCyNetworkView(networkWrapper.network);
 	}
 
 	private JPanel getHeaderPanel() {
@@ -442,36 +411,31 @@ public class AMatReaderDialogTask extends AbstractCySwingApp implements Observab
 		gridBagLayout.rowWeights = new double[] { 1.0, 0.0 };
 		outputPanel.setLayout(gridBagLayout);
 
-		addRow(outputPanel, "Network:", getRootNetworkComboBox(), 0);
-		addRow(outputPanel, "New Collection Name", getCollectionEntry(), 1);
+		addRow(outputPanel, "Network:", getNetworkComboBox(), 0);
+		addRow(outputPanel, "Network Name", getCollectionEntry(), 1);
 
 		return outputPanel;
 	}
 
 	private void predictParameters(File[] files) throws Exception {
-		String collectionName = generateNewCollectionName(files);
-		getCollectionEntry().setText(collectionName);
 		Delimiter delimiter = MatrixParser.predictDelimiter(files[0]);
 		getDelimiterComboBox().setSelectedItem(delimiter);
-
 	}
 
 	@Override
 	public void run(TaskMonitor taskMonitor) {
+		
 		SwingUtilities.invokeLater(new Runnable() {
-
+			
 			@Override
 			public void run() {
-				File[] files = getMatrixFiles();
 
-				if (files.length == 0)
-					return;
 				try {
-					predictParameters(files);
+					if (files.length > 0)
+						predictParameters(files);
 				} catch (Exception e) {
 					System.out.println("Unable to predict parameters.");
 				}
-
 				getOptionsDialog().pack();
 				optionsDialog.setLocationRelativeTo(CyActivator.PARENT_FRAME);
 				optionsDialog.setVisible(true);
@@ -493,39 +457,10 @@ public class AMatReaderDialogTask extends AbstractCySwingApp implements Observab
 		optionsDialog.setVisible(false);
 	}
 
-	public void setFile(File f) {
-		getChooser().setSelectedFile(f);
+	@Override
+	public CyNetwork[] getNetworks() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
-	public static void main(String[] args) {
-		JFileChooser chooser = new JFileChooser();
-		chooser.setMultiSelectionEnabled(true);
-
-		// chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-		chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		// chooser.setControlButtonsAreShown(false);
-		chooser.setAcceptAllFileFilterUsed(true);
-		chooser.setFileFilter(new FileFilter() {
-			String[] suffixes = new String[] { ".mat", ".adj", ".txt", ".tsv", ".csv" };
-
-			@Override
-			public String getDescription() {
-				return String.format("Adjacency Matrices (%s)", String.join(", ", suffixes));
-			}
-
-			@Override
-			public boolean accept(File f) {
-				String name = f.getName();
-				for (String suf : suffixes)
-					if (name.endsWith(suf))
-						return true;
-				return f.isDirectory();
-			}
-		});
-
-		chooser.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		chooser.setApproveButtonText("Import files");
-		chooser.setVisible(false);
-		chooser.showOpenDialog(null);
-	}
 }

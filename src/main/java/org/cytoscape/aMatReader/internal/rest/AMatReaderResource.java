@@ -48,7 +48,7 @@ public interface AMatReaderResource {
 	@ApiResponses(value = {
 			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })
-	public abstract Response aMatReaderWithRoot(
+	public abstract Response aMatReader(
 			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters);
 
 	@POST
@@ -59,7 +59,7 @@ public interface AMatReaderResource {
 	@ApiResponses(value = {
 			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })
-	public abstract Response aMatReader(
-			@ApiParam(value = "CollectionSUID to extend") @PathParam("networkCollectionSUID") long networkCollectionSUID,
+	public abstract Response aMatReaderExtend(
+			@ApiParam(value = "Collection SUID to extend") @PathParam("collectionSUID") long collectionSUID,
 			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters);
 }

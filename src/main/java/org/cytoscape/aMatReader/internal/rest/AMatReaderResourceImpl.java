@@ -8,11 +8,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.cytoscape.aMatReader.internal.tasks.AMatReaderTaskFactory;
+import org.cytoscape.aMatReader.internal.ResourceManager;
+import org.cytoscape.aMatReader.internal.tasks.AMatReaderTask;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
 import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
 import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
@@ -33,13 +33,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiParam;
 
 @Api(tags = { "Apps: aMatReader" })
 @Path("/aMatReader/v1/")
 public class AMatReaderResourceImpl implements AMatReaderResource {
 
-	private final AMatReaderTaskFactory aMatReaderTaskFactory;
+	private final ResourceManager resourceManager;
 	private final SynchronousTaskManager<?> taskManager;
 	private final CyNetworkManager netMngr;
 	private final CyRootNetworkManager rootMngr;
@@ -48,10 +47,10 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	private final CIErrorFactory ciErrorFactory;
 
 	public AMatReaderResourceImpl(final CyServiceRegistrar registrar,
-			final AMatReaderTaskFactory aMatReaderTaskFactory) {
+			final ResourceManager resourceManager) {
 		super();
 		this.taskManager = registrar.getService(SynchronousTaskManager.class);
-		this.aMatReaderTaskFactory = aMatReaderTaskFactory;
+		this.resourceManager = resourceManager;
 		this.ciErrorFactory = registrar.getService(CIErrorFactory.class);
 		this.ciResponseFactory = registrar.getService(CIResponseFactory.class);
 		this.netMngr = registrar.getService(CyNetworkManager.class);
@@ -83,8 +82,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	}
 
 	@CIWrapping
-	public Response aMatReaderWithRoot(
-			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters) {
+	public Response aMatReader(AMatReaderParameters aMatReaderParameters) {
 		AMatReaderTaskObserver taskObserver = new AMatReaderTaskObserver(this, "aMatReader", TASK_EXECUTION_ERROR_CODE);
 
 		File adjFile = new File(aMatReaderParameters.filename);
@@ -111,9 +109,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	}
 
 	@CIWrapping
-	public Response aMatReader(
-			@ApiParam(value = "CollectionSUID to use") @PathParam("networkCollectionSUID") long networkCollectionSUID,
-			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters) {
+	public Response aMatReaderExtend(long collectionSUID, AMatReaderParameters aMatReaderParameters) {
 
 		AMatReaderTaskObserver taskObserver = new AMatReaderTaskObserver(this, "aMatReader", TASK_EXECUTION_ERROR_CODE);
 		File adjFile = new File(aMatReaderParameters.filename);
@@ -125,7 +121,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 					.build();
 
 		try {
-			return extendAdjacencyMatrix(taskObserver, networkCollectionSUID, aMatReaderParameters);
+			return extendAdjacencyMatrix(taskObserver, collectionSUID, aMatReaderParameters);
 		} catch (Exception e) {
 			return Response
 					.status(taskObserver.getResponse().errors.size() == 0 ? Response.Status.OK
@@ -221,11 +217,11 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	public Response runTask(String filename, AMatReaderTaskObserver taskObserver, Map<String, Object> context) {
 		try {
 			InputStream is = new FileInputStream(new File(filename));
-			TaskIterator taskIterator = aMatReaderTaskFactory.createTaskIterator(is, filename);
-
-			taskManager.setExecutionContext(context);
-			taskManager.execute(taskIterator, taskObserver);
+			AMatReaderTask task = new AMatReaderTask(is, filename, resourceManager);
 			
+			taskManager.setExecutionContext(context);
+			taskManager.execute(new TaskIterator(task));
+
 			is.close();
 		} catch (IOException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).type(MediaType.APPLICATION_JSON).entity(

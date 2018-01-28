@@ -60,6 +60,6 @@ public interface AMatReaderResource {
 			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })
 	public abstract Response aMatReaderExtend(
-			@ApiParam(value = "Collection SUID to extend") @PathParam("collectionSUID") long collectionSUID,
+			@ApiParam(value = "Network SUID to extend") @PathParam("networkSUID") long networkSUID,
 			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters);
 }

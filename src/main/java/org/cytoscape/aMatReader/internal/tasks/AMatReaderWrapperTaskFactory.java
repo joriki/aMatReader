@@ -23,6 +23,7 @@ public class AMatReaderWrapperTaskFactory extends AbstractInputStreamTaskFactory
 			File f = new File(inputName);
 			inputName = f.getName();
 		}
+		inputName = resourceManager.naming.getSuggestedNetworkTitle(inputName);
 		return new TaskIterator(new AMatReaderWrapperTask(is, inputName, resourceManager));
 	}
 

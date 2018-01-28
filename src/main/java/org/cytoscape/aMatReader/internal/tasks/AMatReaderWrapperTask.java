@@ -33,8 +33,11 @@ import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderRespo
 import org.cytoscape.aMatReader.internal.util.Delimiter;
 import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
 import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
+import org.cytoscape.aMatReader.internal.util.MatrixParser;
 import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyNetwork;
+import org.cytoscape.model.subnetwork.CyRootNetwork;
+import org.cytoscape.model.subnetwork.CySubNetwork;
 import org.cytoscape.util.swing.LookAndFeelUtil;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.work.AbstractTask;
@@ -56,7 +59,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 	private JPanel optionsPanel, advancedPanel;
 	private JComboBox<NetworkWrapper> networkCombo;
 	private JCheckBox undirectedCheckBox, ignoreZerosCheckbox;
-	private JTextField interactionEntry, collectionEntry;
+	private JTextField interactionEntry, nameEntry;
 
 	private final File[] files;
 	private final InputStream inputStream;
@@ -204,9 +207,10 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 				@Override
 				public void itemStateChanged(ItemEvent e) {
 					boolean nullRoot = ((NetworkWrapper) e.getItem()).network == null;
-					getCollectionEntry().setEnabled(nullRoot);
-					//if (!nullRoot)
-					//	getCollectionEntry().setText(((NetworkWrapper) e.getItem()).toString());
+					getNameEntry().setEnabled(nullRoot);
+					// if (!nullRoot)
+					// getCollectionEntry().setText(((NetworkWrapper)
+					// e.getItem()).toString());
 				}
 			});
 
@@ -214,16 +218,16 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 			for (CyNetwork network : resourceManager.netManager.getNetworkSet()) {
 				networkCombo.addItem(new NetworkWrapper(network));
 			}
-
+			networkCombo.setEnabled(networkCombo.getItemCount() > 1);
 		}
 		return networkCombo;
 	}
 
-	private JTextField getCollectionEntry() {
-		if (collectionEntry == null) {
-			collectionEntry = new JTextField(name);
+	private JTextField getNameEntry() {
+		if (nameEntry == null) {
+			nameEntry = new JTextField(name);
 		}
-		return collectionEntry;
+		return nameEntry;
 	}
 
 	private JPanel getOptionsPanel() {
@@ -283,7 +287,6 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 				@Override
 				public void actionPerformed(ActionEvent e) {
-					// TODO Auto-generated method stub
 					optionsDialog.setVisible(false);
 				}
 			});
@@ -301,7 +304,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 		AMatReaderParameters params = new AMatReaderParameters();
 		params.delimiter = (Delimiter) delimiterComboBox.getSelectedItem();
-		params.filename = collectionEntry.getText();
+
 		params.headerColumn = (HeaderColumnFormat) headerColumnComboBox.getSelectedItem();
 		params.headerRow = (HeaderRowFormat) headerRowComboBox.getSelectedItem();
 		params.interactionName = interactionEntry.getText();
@@ -310,42 +313,33 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 		NetworkWrapper networkWrapper = (NetworkWrapper) networkCombo.getSelectedItem();
 		CyNetwork net = networkWrapper.network;
-		
+
+		boolean newNetwork = networkWrapper.network == null;
+
 		if (files.length > 0) {
 
 			for (File f : files) {
 				try {
 					InputStream is = new FileInputStream(f);
-
+					params.filename = f.getName();
 					net = importMatrix(net, is, params);
-
 				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 					System.out.println("Matrix file could not be found.");
 				}
 
 			}
 		} else {
+			params.filename = name;
 			net = importMatrix(net, inputStream, params);
 		}
-
-		/*
-		 * final CyNetworkView toLayout = view; SwingUtilities.invokeLater(new
-		 * Runnable(){
-		 * 
-		 * @Override public void run() { 
-		 * 
-		CyLayoutAlgorithm algor = resourceManager.layoutManager.getDefaultLayout();
-		String layoutAttribute = CyNetwork.NAME;
-		Object context = algor.getDefaultLayoutContext();
-		TaskIterator itr = algor.createTaskIterator(toLayout, context, CyLayoutAlgorithm.ALL_NODE_VIEWS, layoutAttribute);
-		taskManager.execute(itr);
+		
+		if (newNetwork) {
+			net.getRow(net).set(CyNetwork.NAME, nameEntry.getText());
+			CyRootNetwork root = ((CySubNetwork) net).getRootNetwork();
+			root.getRow(root).set(CyRootNetwork.NAME, nameEntry.getText());
 		}
-		 * 
-		 * });
-		 */
-
+		
 		optionsDialog.setVisible(false);
 	}
 
@@ -380,7 +374,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 			}
 		}
 		return network;
-		//task.buildCyNetworkView(networkWrapper.network);
+		// task.buildCyNetworkView(networkWrapper.network);
 	}
 
 	private JPanel getHeaderPanel() {
@@ -412,7 +406,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		outputPanel.setLayout(gridBagLayout);
 
 		addRow(outputPanel, "Network:", getNetworkComboBox(), 0);
-		addRow(outputPanel, "Network Name", getCollectionEntry(), 1);
+		addRow(outputPanel, "Network Name", getNameEntry(), 1);
 
 		return outputPanel;
 	}
@@ -424,9 +418,9 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 	@Override
 	public void run(TaskMonitor taskMonitor) {
-		
+
 		SwingUtilities.invokeLater(new Runnable() {
-			
+
 			@Override
 			public void run() {
 
@@ -459,7 +453,6 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 	@Override
 	public CyNetwork[] getNetworks() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

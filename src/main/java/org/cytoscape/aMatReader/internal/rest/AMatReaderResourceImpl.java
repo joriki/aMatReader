@@ -2,6 +2,7 @@ package org.cytoscape.aMatReader.internal.rest;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -23,8 +24,6 @@ import org.cytoscape.ci.model.CIError;
 import org.cytoscape.ci.model.CIResponse;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNetworkManager;
-import org.cytoscape.model.subnetwork.CyRootNetwork;
-import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.work.SynchronousTaskManager;
 import org.cytoscape.work.TaskIterator;
@@ -41,7 +40,6 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	private final ResourceManager resourceManager;
 	private final SynchronousTaskManager<?> taskManager;
 	private final CyNetworkManager netMngr;
-	private final CyRootNetworkManager rootMngr;
 
 	private final CIResponseFactory ciResponseFactory;
 	private final CIErrorFactory ciErrorFactory;
@@ -54,7 +52,6 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 		this.ciErrorFactory = registrar.getService(CIErrorFactory.class);
 		this.ciResponseFactory = registrar.getService(CIResponseFactory.class);
 		this.netMngr = registrar.getService(CyNetworkManager.class);
-		this.rootMngr = registrar.getService(CyRootNetworkManager.class);
 
 	}
 
@@ -109,7 +106,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	}
 
 	@CIWrapping
-	public Response aMatReaderExtend(long collectionSUID, AMatReaderParameters aMatReaderParameters) {
+	public Response aMatReaderExtend(long networkSUID, AMatReaderParameters aMatReaderParameters) {
 
 		AMatReaderTaskObserver taskObserver = new AMatReaderTaskObserver(this, "aMatReader", TASK_EXECUTION_ERROR_CODE);
 		File adjFile = new File(aMatReaderParameters.filename);
@@ -121,7 +118,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 					.build();
 
 		try {
-			return extendAdjacencyMatrix(taskObserver, collectionSUID, aMatReaderParameters);
+			return extendAdjacencyMatrix(taskObserver, networkSUID, aMatReaderParameters);
 		} catch (Exception e) {
 			return Response
 					.status(taskObserver.getResponse().errors.size() == 0 ? Response.Status.OK
@@ -155,8 +152,10 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	public Response importAdjacencyMatrix(AMatReaderTaskObserver taskObserver,
 			AMatReaderParameters aMatReaderParameters) throws IOException {
 		try {
+			
 			Map<String, Object> context = buildContext(aMatReaderParameters);
-			return runTask(aMatReaderParameters.filename, taskObserver, context);
+			
+			return runTask(null, aMatReaderParameters.filename, taskObserver, context);
 		} catch (Exception e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).type(MediaType.APPLICATION_JSON)
 					.entity(buildCIErrorResponse(500, "aMatReader", TASK_EXECUTION_ERROR_CODE, e.getMessage(), e))
@@ -165,47 +164,23 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	}
 
-	private String getCollectionName(long collectionSUID) throws NetworkCollectionNotFoundException {
-		CyRootNetwork root = null;
-		for (CyNetwork net : netMngr.getNetworkSet()) {
-			final CyRootNetwork rootNet = rootMngr.getRootNetwork(net);
-			if (rootNet.getSUID() == collectionSUID) {
-				root = rootNet;
-			}
-		}
-		if (root == null)
-			throw new NetworkCollectionNotFoundException();
-
-		return root.getRow(root).get(CyRootNetwork.NAME, String.class);
-	}
-
-	private class NetworkCollectionNotFoundException extends Exception {
-
-		/**
-		 * 
-		 */
-		private static final long serialVersionUID = 3386053605487034993L;
-	}
-
-	public Response extendAdjacencyMatrix(AMatReaderTaskObserver taskObserver, long collectionSUID,
+	public Response extendAdjacencyMatrix(AMatReaderTaskObserver taskObserver, long networkSUID,
 			AMatReaderParameters aMatReaderParameters) throws IOException {
 
-		String collectionName = null;
 		try {
 			Map<String, Object> context = buildContext(aMatReaderParameters);
-			collectionName = getCollectionName(collectionSUID);
-			ListSingleSelection<String> root = new ListSingleSelection<String>(collectionName);
-
-			context.put("rootNetworkList", root);
-
-			return runTask(aMatReaderParameters.filename, taskObserver, context);
-
-		} catch (NetworkCollectionNotFoundException e) {
-			return Response.status(Response.Status.NOT_FOUND).type(MediaType.APPLICATION_JSON)
-					.entity(buildCIErrorResponse(404, "aMatReader", INVALID_PARAMETERS_CODE,
-							"Network Collection with SUID " + collectionSUID + " not found",
-							new Exception("Network collection not found")))
-					.build();
+			CyNetwork network = netMngr.getNetwork(networkSUID);
+			
+			if (network == null){
+				return Response.status(Response.Status.NOT_FOUND).type(MediaType.APPLICATION_JSON)
+						.entity(buildCIErrorResponse(404, "aMatReader", INVALID_PARAMETERS_CODE,
+								"Network with SUID " + networkSUID + " not found",
+								new Exception("Network collection not found")))
+						.build();
+			}
+			
+			return runTask(network, aMatReaderParameters.filename, taskObserver, context);
+			
 		} catch (Exception e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).type(MediaType.APPLICATION_JSON)
 					.entity(buildCIErrorResponse(500, "aMatReader", TASK_EXECUTION_ERROR_CODE, e.getMessage(), e))
@@ -214,18 +189,35 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	}
 
-	public Response runTask(String filename, AMatReaderTaskObserver taskObserver, Map<String, Object> context) {
+	public Response runTask(CyNetwork network, String filename, AMatReaderTaskObserver taskObserver, Map<String, Object> context) {
 		try {
-			InputStream is = new FileInputStream(new File(filename));
-			AMatReaderTask task = new AMatReaderTask(is, filename, resourceManager);
+			File f = new File(filename);
+			if (!f.exists()){
+				String message = filename + " not found.";
+				return Response.status(Response.Status.NOT_FOUND).type(MediaType.APPLICATION_JSON).entity(
+						buildCIErrorResponse(404, "aMatReader", INVALID_PARAMETERS_CODE, message, new FileNotFoundException(message)))
+						.build();
+			}
+			InputStream is = new FileInputStream(f);
+			
+			AMatReaderTask task;
+			if (network == null)
+				task = new AMatReaderTask(is, filename, resourceManager);
+			else
+				task = new AMatReaderTask(network, is, filename, resourceManager);
 			
 			taskManager.setExecutionContext(context);
+			
 			taskManager.execute(new TaskIterator(task));
 
 			is.close();
 		} catch (IOException e) {
 			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).type(MediaType.APPLICATION_JSON).entity(
 					buildCIErrorResponse(404, "aMatReader", INVALID_PARAMETERS_CODE, "Failed to open " + filename, e))
+					.build();
+		} catch (Exception e){
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR).type(MediaType.APPLICATION_JSON).entity(
+					buildCIErrorResponse(404, "aMatReader", INVALID_PARAMETERS_CODE, "Error importing matrix file", e))
 					.build();
 		}
 

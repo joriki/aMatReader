@@ -49,9 +49,4 @@ public class AMatReaderTaskObserver implements TaskObserver {
 		AMatReaderResponse resp = arg0.getResults(AMatReaderResponse.class);
 		aMatResponse.update(resp);
 	}
-
-
-	public void printStatus() {
-		System.out.printf("Current state: %d new, %d updated, net: %s", aMatResponse.data.newEdges, aMatResponse.data.updatedEdges, aMatResponse.data.suid);
-	}
 }

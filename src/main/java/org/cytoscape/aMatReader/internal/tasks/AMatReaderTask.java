@@ -2,7 +2,6 @@ package org.cytoscape.aMatReader.internal.tasks;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -113,12 +112,15 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	}
 
 	@Override
-	public void run(TaskMonitor taskMonitor) throws InvocationTargetException, InterruptedException, IOException {
+	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException {
 
 		Delimiter delim = delimiter.getSelectedValue();
 		HeaderColumnFormat headerColumn = this.headerColumn.getSelectedValue();
 		HeaderRowFormat headerRow = this.headerRow.getSelectedValue();
-
+		if (delim == null){
+			throw new NullPointerException("Delimiter value not recognized");
+		}
+		
 		final MatrixParser parser = new MatrixParser(inputStream, delim, undirected, ignoreZeros, headerColumn,
 				headerRow);
 

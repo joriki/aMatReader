@@ -3,6 +3,7 @@ package org.cytoscape.aMatReader.internal.rest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -81,6 +82,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	}
 
 	private Response buildErrorResponse(Status server_code, String error_code, Exception e) {
+		System.out.println("MESSAGE: " + e.getMessage());
 		return Response.status(server_code).type(MediaType.APPLICATION_JSON)
 				.entity(buildCIErrorResponse(server_code.getStatusCode(), "aMatReader", error_code, e.getMessage(), e))
 				.build();
@@ -97,8 +99,12 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	public Response aMatReaderExtend(long networkSUID, AMatReaderParameters aMatReaderParameters) {
 		return aMatReaderImport(new Long(networkSUID), aMatReaderParameters);
 	}
-		
-	public Response aMatReaderImport(Long networkSUID, AMatReaderParameters params){
+
+	public Response aMatReaderImport(Long networkSUID, AMatReaderParameters params) {
+		if (params == null) {
+			return buildErrorResponse(Response.Status.BAD_REQUEST, INVALID_PARAMETERS_CODE,
+					new Exception("No parameters provided"));
+		}
 		if (params.files == null) {
 			return buildErrorResponse(Response.Status.BAD_REQUEST, INVALID_PARAMETERS_CODE,
 					new Exception("No files provided"));
@@ -118,11 +124,11 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 				return buildErrorResponse(Response.Status.NOT_FOUND, INVALID_PARAMETERS_CODE, new Exception(message));
 			}
 		}
-		
+
 		Response resp = importFiles(network, params, context);
-		
+
 		taskObserver.allFinished(FinishStatus.getSucceeded());
-		
+
 		return resp;
 
 	}
@@ -150,33 +156,45 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	public Response importFiles(CyNetwork network, AMatReaderParameters params, Map<String, Object> context) {
 		CyNetwork net = network;
-		
+
 		for (String f : params.files) {
 			try {
 				CIResponse<?> response = importFile(net, f, context);
-				System.out.println(response);
-				if (response instanceof AMatReaderResponse){
-					System.out.println("INSTANCEOF");
-				}
-				Long suid = taskObserver.aMatResponse.data.suid;
-				if (net == null && suid != null) {
+				
+				if (response instanceof AMatReaderResponse) {
+					Long suid = taskObserver.aMatResponse.data.suid;
+					if (net == null && suid != null) {
 						net = resourceManager.netManager.getNetwork(suid);
+					}
+				} else {
+					if (net != null)
+						resourceManager.netManager.destroyNetwork(net);
+					break;
 				}
 			} catch (FileNotFoundException e) {
+				if (net != null)
+					resourceManager.netManager.destroyNetwork(net);
 				return buildErrorResponse(Response.Status.NOT_FOUND, INVALID_FILE_CODE, e);
-			} catch (SecurityException e) {
+			} catch (SecurityException | IOException e) {
+				if (net != null)
+					resourceManager.netManager.destroyNetwork(net);
 				return buildErrorResponse(Response.Status.BAD_REQUEST, INVALID_FILE_CODE, e);
+			} catch (NullPointerException e) {
+				if (net != null)
+					resourceManager.netManager.destroyNetwork(net);
+				return buildErrorResponse(Response.Status.BAD_REQUEST, TASK_EXECUTION_ERROR_CODE, e);
 			}
 		}
 		taskObserver.allFinished(FinishStatus.getSucceeded());
 		CIResponse<?> resp = taskObserver.getResponse();
-		
+
 		return Response.status(resp.errors.size() == 0 ? Response.Status.OK : Response.Status.INTERNAL_SERVER_ERROR)
 				.type(MediaType.APPLICATION_JSON).entity(resp).build();
 
 	}
 
-	public CIResponse<?> runTask(CyNetwork network, InputStream is, String name, Map<String, Object> context) {
+	public CIResponse<?> runTask(CyNetwork network, InputStream is, String name, Map<String, Object> context)
+			throws IOException, NullPointerException {
 		AMatReaderTask task;
 		if (network == null)
 			task = new AMatReaderTask(is, name, resourceManager);
@@ -187,14 +205,12 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 		taskManager.execute(new TaskIterator(task));
 
 		taskObserver.taskFinished(task);
-		
-		taskObserver.printStatus();
-		
+
 		return taskObserver.getResponse();
 	}
 
 	public CIResponse<?> importFile(CyNetwork network, String filename, Map<String, Object> context)
-			throws FileNotFoundException, SecurityException {
+			throws FileNotFoundException, NullPointerException, SecurityException, IOException {
 		File f = new File(filename);
 		InputStream is = new FileInputStream(f);
 		return runTask(network, is, f.getName(), context);

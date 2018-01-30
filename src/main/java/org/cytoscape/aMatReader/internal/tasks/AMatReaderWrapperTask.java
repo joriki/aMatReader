@@ -321,8 +321,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 			for (File f : files) {
 				try {
 					InputStream is = new FileInputStream(f);
-					params.filename = f.getName();
-					net = importMatrix(net, is, params);
+					net = importMatrix(net, is, f.getName(), params);
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
 					System.out.println("Matrix file could not be found.");
@@ -330,26 +329,27 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 			}
 		} else {
-			params.filename = name;
-			net = importMatrix(net, inputStream, params);
+			net = importMatrix(net, inputStream, name, params);
 		}
 		
+		String name = resourceManager.naming.getSuggestedNetworkTitle(nameEntry.getText());
+		
 		if (newNetwork) {
-			net.getRow(net).set(CyNetwork.NAME, nameEntry.getText());
+			net.getRow(net).set(CyNetwork.NAME, name);
 			CyRootNetwork root = ((CySubNetwork) net).getRootNetwork();
-			root.getRow(root).set(CyRootNetwork.NAME, nameEntry.getText());
+			root.getRow(root).set(CyRootNetwork.NAME, name);
 		}
 		
 		optionsDialog.setVisible(false);
 	}
 
-	private CyNetwork importMatrix(CyNetwork network, InputStream is, AMatReaderParameters params) {
+	private CyNetwork importMatrix(CyNetwork network, InputStream is, String name, AMatReaderParameters params) {
 
 		AMatReaderTask task;
 		if (network != null) {
-			task = new AMatReaderTask(network, is, params.filename, resourceManager);
+			task = new AMatReaderTask(network, is, name, resourceManager);
 		} else {
-			task = new AMatReaderTask(is, params.filename, resourceManager);
+			task = new AMatReaderTask(is, name, resourceManager);
 		}
 
 		task.headerRow.setSelectedValue(params.headerRow);

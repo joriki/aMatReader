@@ -1,5 +1,8 @@
 package org.cytoscape.aMatReader.internal.rest;
 
+
+import java.util.ArrayList;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -8,6 +11,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.cytoscape.ci.model.CIError;
 import org.cytoscape.ci.model.CIResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +38,17 @@ public interface AMatReaderResource {
 	final static String resourceErrorRoot = "urn:cytoscape:ci:aMatReader-app:v1";
 
 	@ApiModel(value = "aMatReader Response", description = "aMatReader new/updated nodes in Cytoscape", parent = CIResponse.class)
+	
 	public static class AMatReaderResponse extends CIResponse<AMatReaderResult> {
-		public AMatReaderResponse(long suid, int newEdges, int updatedEdges) {
+		public AMatReaderResponse(Long suid, int newEdges, int updatedEdges) {
 			this.data = new AMatReaderResult(suid, newEdges, updatedEdges);
+			this.errors = new ArrayList<CIError>();
+		}
+
+		public void update(AMatReaderResponse resp) {
+			data.newEdges += resp.data.newEdges;
+			data.updatedEdges += resp.data.updatedEdges;
+			data.suid = resp.data.suid;
 		}
 	}
 
@@ -54,7 +66,7 @@ public interface AMatReaderResource {
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("extend/{networkCollectionSUID}")
+	@Path("extend/{networkSUID}")
 	@ApiOperation(value = "Import a network from adjacency matrix file(s)", notes = GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
 	@ApiResponses(value = {
 			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),

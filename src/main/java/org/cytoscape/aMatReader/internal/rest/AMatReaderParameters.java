@@ -16,8 +16,8 @@ import io.swagger.annotations.ApiModelProperty;
 
 @ApiModel(value = "Adjacency Matrix Reader", description = "Import adjacency matrix .mat files as Cytoscape networks")
 public class AMatReaderParameters {
-	@ApiModelProperty(value = "Path of .mat/.adj file to be imported", required=true)
-	public String filename;
+	@ApiModelProperty(value = "Paths of .mat/.adj file to be imported", required=true)
+	public String[] files;
 	
 	@ApiModelProperty(value = "Delimiter between cells", example="TAB")
 	public Delimiter delimiter = Delimiter.TAB;

@@ -3,11 +3,15 @@ package org.cytoscape.aMatReader.internal.tasks;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
+import org.cytoscape.aMatReader.internal.rest.AMatReaderResult;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
 import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
 import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
@@ -27,11 +31,12 @@ import org.cytoscape.work.ProvidesTitle;
 import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.Tunable;
+import org.cytoscape.work.json.JSONResult;
 import org.cytoscape.work.util.ListSingleSelection;
 
 public class AMatReaderTask extends AbstractTask implements CyNetworkReader, ObservableTask {
 	private String columnName;
-	private AMatReaderResponse result;
+	private AMatReaderResponse response;
 	private boolean createView = false;
 	private CyNetwork network;
 
@@ -164,14 +169,14 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 		inputStream.close();
 
 		rm.eventHelper.flushPayloadEvents();
-		result = new AMatReaderResponse(network.getSUID(), newEdgeCount, updatedEdgeCount);
-
+		
 		if (createView && network.getEdgeCount() < 10000) {
 			layoutNetwork(network);
 		}
 
 		taskMonitor.setProgress(1.0);
-
+		response = new AMatReaderResponse(network.getSUID(), newEdgeCount, updatedEdgeCount);
+		
 	}
 
 	private void layoutNetwork(CyNetwork network) {
@@ -268,10 +273,32 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 		return resView;
 	}
 
+	private static final String getResultString(AMatReaderResult result) {
+		return "Created " + result.newEdges + " new edges and updated " + result.updatedEdges + " in network with SUID " + result.suid;
+	}
+	
 	@SuppressWarnings("unchecked")
 	@Override
 	public <R> R getResults(Class<? extends R> type) {
-		return (R) result;
+		if (type.equals(String.class)) {
+			AMatReaderResult result = response.data;
+			return (R) getResultString(result);
+		} else if (type.equals(AMatReaderResponse.class)) {
+			return (R) response;
+		} else if (type.equals(JSONResult.class)) {
+			return (R)getJson(response.data);
+		}
+		return null;
+	}
+
+	public final static String getJson(AMatReaderResult result) {
+		return "{\"newEdges\": " + result.newEdges + ", \"updatedEdges\": " + result.updatedEdges + ", \"suid\": " + result.suid + "}";
+	}
+
+	@Override
+	public List<Class<?>> getResultClasses() {
+		return Collections
+				.unmodifiableList(Arrays.asList(String.class, AMatReaderResponse.class, JSONResult.class));
 	}
 
 	@Override

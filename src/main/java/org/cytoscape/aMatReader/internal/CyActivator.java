@@ -5,6 +5,7 @@ import static org.cytoscape.work.ServiceProperties.*;
 import java.util.Properties;
 import javax.swing.JFrame;
 
+import org.cytoscape.aMatReader.internal.rest.AMatReaderResource;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResourceImpl;
 import org.cytoscape.aMatReader.internal.tasks.AMatReaderWrapperTaskFactory;
 import org.cytoscape.aMatReader.internal.tasks.FileChooserTaskFactory;
@@ -52,8 +53,8 @@ public class CyActivator extends AbstractCyActivator {
 		wrapperProps.setProperty(IN_MENU_BAR, "false");
 		registerAllServices(bc, wrapperService, wrapperProps);
 
-		AMatReaderResourceImpl restService = new AMatReaderResourceImpl(serviceRegistrar, resourceManager);
-		registerService(bc, restService, AMatReaderResourceImpl.class);
+		AMatReaderResource restService = new AMatReaderResourceImpl(serviceRegistrar, resourceManager);
+		registerService(bc, restService, AMatReaderResource.class);
 	}
 
 	@Override

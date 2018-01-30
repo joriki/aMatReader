@@ -16,5 +16,5 @@ class AMatReader:
 
     def extend_matrix(self, suid, data):
         """ Execute a diffusion with options on current network """
-        return self._cy_caller.execute_post("/aMatReader/v1/extend/" + suid,
-                                            json.dumps(data))
+        url = "/aMatReader/v1/extend/" + str(suid)
+        return self._cy_caller.execute_post(url, json.dumps(data))

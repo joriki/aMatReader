@@ -20,9 +20,15 @@ import os
 path = os.path.realpath(__file__)
 path = os.path.dirname(path)
 path = os.path.dirname(path)
-path = os.path.join(path, 'samples', 'sample.mat')
+SAMPLE_DIR = os.path.join(path, 'samples')
+SAMPLE_FILE = os.path.join(SAMPLE_DIR, "sample.mat")
+SAMPLE_NO_HEADER_ROW = os.path.join(SAMPLE_DIR, "sampleNoHeaderRow.mat")
+SAMPLE_NO_HEADER_COLUMN = os.path.join(SAMPLE_DIR, "sampleNoHeaderColumn.mat")
+SAMPLE_NO_HEADERS = os.path.join(SAMPLE_DIR, "sampleNoHeaders.mat")
+
 
 BASE_DATA = {
+  "files": [SAMPLE_FILE],
   "delimiter": "TAB",
   "undirected": False,
   "interactionName": "interacts with",
@@ -38,10 +44,11 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def tearDown(self):
         pass
-        """
+
+
     def test_amatreader_no_files(self):
         data = BASE_DATA.copy()
-
+        del data['files']
         try:
             _amatreader.import_matrix(data)
         except CyFailedCIError as e:
@@ -55,7 +62,7 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def test_amatreader_nonexistant_file(self):
         data = BASE_DATA.copy()
-        data.update({"files": ["NONEXISTANT"]})
+        data["files"] = ["NONEXISTANT"]
         try:
             _amatreader.import_matrix(data)
         except CyFailedCIError as e:
@@ -69,7 +76,7 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def test_amatreader_one_nonexistant_file(self):
         data = BASE_DATA.copy()
-        data.update({"files": [path, "NONEXISTANT"]})
+        data["files"] = [SAMPLE_FILE, "NONEXISTANT"]
 
         try:
             _amatreader.import_matrix(data)
@@ -85,7 +92,7 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def test_amatreader(self):
         data = BASE_DATA.copy()
-        data.update({"files": [path]})
+
         result = _amatreader.import_matrix(data)
         assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
         assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
@@ -94,7 +101,7 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def test_amatreader_2(self):
         data = BASE_DATA.copy()
-        data.update({ "files": [path, path]})
+        data["files"] = [SAMPLE_FILE, SAMPLE_FILE]
 
         result = _amatreader.import_matrix(data)
         assert result['newEdges'] == 10, 'newEdges value should be 10, %s' % result
@@ -104,7 +111,6 @@ class AMatReaderTestCase(unittest.TestCase):
     def test_amatreader_extend(self):
         AMATREADER_COLUMN = "sample.mat"
         data = BASE_DATA.copy()
-        data.update({ "files": [path]})
 
         result = _amatreader.import_matrix(data)
         assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
@@ -120,34 +126,115 @@ class AMatReaderTestCase(unittest.TestCase):
     def test_amatreader_extend_2(self):
         AMATREADER_COLUMN = "sample.mat"
         data = BASE_DATA.copy()
-        data.update({ "files": [path]})
+
         result = _amatreader.import_matrix(data)
         assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
         assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
 
         suid = result['suid']
-        data['files'] = [path, path, path]
+        data['files'] = [SAMPLE_FILE, SAMPLE_FILE, SAMPLE_FILE]
         result = _amatreader.extend_matrix(suid, data)
         assert result['newEdges'] == 0, 'newEdges value should be 0, not %s' % result
         assert result['updatedEdges'] == 30, 'updatedEdges value should be 10, not %s' % result
 
         _amatreader.remove_network(result['suid'])
-        """
+
     def test_amatreader_bad_delimiter(self):
         data = BASE_DATA.copy()
-        data['files'] = [path]
         data['delimiter'] = 'ERROR'
 
         try:
             _amatreader.import_matrix(data)
         except CyFailedCIError as e:
             error = e.args[0]
-            assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:3" \
-                   and error["status"] == 400 \
-                   #and error["message"] is not None \
+            assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:2" \
+                   and error["status"] == 500 \
+                   and error["message"] is not None \
                    and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
         else:
             assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
+
+    def test_amatreader_bad_format(self):
+        data = BASE_DATA.copy()
+        data['headerRow'] = 'ERROR'
+
+        try:
+            _amatreader.import_matrix(data)
+        except CyFailedCIError as e:
+            error = e.args[0]
+            assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:2" \
+                   and error["status"] == 500 \
+                   and error["message"] is not None \
+                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
+        else:
+            assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
+    
+    def test_amatreader_undirected(self):
+        data = BASE_DATA.copy()
+        data.update({"files": [SAMPLE_FILE], "undirected": True})
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 5, 'newEdges value should be 5, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
+
+    def test_amatreader_no_header_row(self):
+        data = BASE_DATA.copy()
+        data.update({ "files": [SAMPLE_NO_HEADER_ROW], 'headerRow': 'NONE'})
+
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
+
+    def test_amatreader_no_header_column(self):
+        data = BASE_DATA.copy()
+        data.update({'files': [SAMPLE_NO_HEADER_COLUMN], 'headerColumn': 'NONE'})
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
+    def test_amatreader_skip_header_row(self):
+        data = BASE_DATA.copy()
+        data.update({'files': [SAMPLE_FILE], 'headerRow': 'IGNORE'})
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
+    def test_amatreader_skip_header_column(self):
+        data = BASE_DATA.copy()
+        data.update({'files': [SAMPLE_FILE], 'headerColumn': 'IGNORE'})
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
+    def test_amatreader_skip_headers(self):
+        data = BASE_DATA.copy()
+        data.update({'files': [SAMPLE_FILE], 'headerColumn': 'IGNORE', 'headerRow': 'IGNORE'})
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
+    def test_amatreader_no_headers(self):
+        data = BASE_DATA.copy()
+        data.update({'files': [SAMPLE_NO_HEADERS], 'headerColumn': 'NONE', 'headerRow': 'NONE'})
+        result = _amatreader.import_matrix(data)
+        assert result['newEdges'] == 10, 'newEdges value should be 10, not %s' % result
+        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
+
+        _amatreader.remove_network(result['suid'])
+
 
     def test_amatreader_exception(self):
         try:

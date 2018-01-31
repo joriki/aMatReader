@@ -2,10 +2,13 @@ package org.cytoscape.aMatReader.internal.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -60,12 +63,17 @@ public class MatrixParser {
 		}
 	}
 
-	public Map<Integer, Double> parseRow(String[] row, int start) {
+	public Map<Integer, Double> parseRow(String[] row, int rowNumber, boolean undirected, HeaderColumnFormat headerColumn) {
 		Map<Integer, Double> tgtMap = new HashMap<Integer, Double>();
-		for (int index = 0; index + start < row.length; index++) {
-			Double value = getValue(row[index + start]);
+		
+		int dHeader = (headerColumn == HeaderColumnFormat.NONE ? 0 : 1);
+		
+		int start = undirected ? rowNumber : 0;
+		for (int index = 0; index + start + dHeader < row.length; index++) {
+			int true_index = index + start;
+			Double value = getValue(row[true_index + dHeader]);
 			if (value != null && !(ignoreZeros && value == 0)) {
-				tgtMap.put(index + start - 1, value);
+				tgtMap.put(true_index, value);
 			}
 		}
 		return tgtMap;
@@ -89,20 +97,20 @@ public class MatrixParser {
 					pastHeader = true;
 					continue;
 				} else {
-					String name = "Node " + rowNumber;
+					String name = "Node" + (rowNumber + 1);
+
 					if (headerColumn == HeaderColumnFormat.NAMES)
 						name = row[0];
 					else if (headerRow == HeaderRowFormat.NAMES)
 						name = targetNames.get(rowNumber);
+
 					sourceNames.add(name);
-					int start = headerColumn == HeaderColumnFormat.NONE ? 0 : 1;
-					if (undirected) {
-						start += rowNumber;
-					}
-					Map<Integer, Double> tgtMap = parseRow(row, start);
+					
+					Map<Integer, Double> tgtMap = parseRow(row, rowNumber, undirected, headerColumn);
 
 					if (headerRow != HeaderRowFormat.NAMES)
 						targetNames.add(name);
+
 					edgeMap.put(rowNumber, tgtMap);
 				}
 				rowNumber++;
@@ -142,7 +150,6 @@ public class MatrixParser {
 		return v;
 	}
 
-
 	public static Delimiter predictDelimiter(File file) throws IOException {
 		BufferedReader reader = new BufferedReader(new FileReader(file));
 		String line1 = reader.readLine();
@@ -159,5 +166,28 @@ public class MatrixParser {
 		}
 		reader.close();
 		return delimiter;
+	}
+
+	public static void main(String[] args) throws FileNotFoundException {
+		File f = new File("samples/sampleNoHeaderRow.mat");
+		System.out.println(f.getAbsolutePath());
+		InputStream is = new FileInputStream(f);
+		
+		MatrixParser parser = new MatrixParser(is, Delimiter.TAB, true, false, HeaderColumnFormat.IGNORE,
+				HeaderRowFormat.NONE);
+		System.out.println("Sources: " + String.join(", ", parser.sourceNames));
+		System.out.println("Targets: " + String.join(", ", parser.targetNames));
+		System.out.println("Edges: " + parser.edgeCount());
+
+		for (int i : parser.edgeMap.keySet()) {
+			String src = parser.getSourceName(i);
+			for (int j : parser.edgeMap.get(i).keySet()) {
+				String tgt = parser.getTargetName(j);
+				Double v = parser.edgeMap.get(i).get(j);
+				if (v != null)
+					System.out.println(i + ":" + src + " " + j + ":" + tgt + " " + v);
+			}
+		}
+
 	}
 }

@@ -82,7 +82,6 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	}
 
 	private Response buildErrorResponse(Status server_code, String error_code, Exception e) {
-		System.out.println("MESSAGE: " + e.getMessage());
 		return Response.status(server_code).type(MediaType.APPLICATION_JSON)
 				.entity(buildCIErrorResponse(server_code.getStatusCode(), "aMatReader", error_code, e.getMessage(), e))
 				.build();
@@ -145,6 +144,16 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 		Delimiter delimiter = params.delimiter;
 		delim.setSelectedValue(delimiter);
 
+		if (delim.getSelectedValue() == null){
+			throw new NullPointerException("Delimiter value not recognized. Must be one of " + Delimiter.values());
+		}
+		if(row.getSelectedValue() == null){
+			throw new NullPointerException("Unrecognized row header value. Must be one of " + HeaderRowFormat.values());
+		}
+		if(column.getSelectedValue() == null){
+			throw new NullPointerException("Unrecognized column header value. Must be one of " + HeaderColumnFormat.values());
+		}
+		
 		context.put("delimiter", delim);
 		context.put("undirected", params.undirected);
 		context.put("interactionName", params.interactionName);

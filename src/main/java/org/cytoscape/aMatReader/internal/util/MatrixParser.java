@@ -8,7 +8,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -19,7 +18,7 @@ public class MatrixParser {
 	private final boolean ignoreZeros;
 
 	public MatrixParser(InputStream is, Delimiter delim, boolean undirected, boolean ignoreZeros,
-			HeaderColumnFormat headerColumn, HeaderRowFormat headerRow) {
+			RowNameState headerColumn, ColumnNameState headerRow) {
 		this.ignoreZeros = ignoreZeros;
 		sourceNames = new Vector<String>();
 		targetNames = new Vector<String>();
@@ -63,10 +62,10 @@ public class MatrixParser {
 		}
 	}
 
-	public Map<Integer, Double> parseRow(String[] row, int rowNumber, boolean undirected, HeaderColumnFormat headerColumn) {
+	public Map<Integer, Double> parseRow(String[] row, int rowNumber, boolean undirected, RowNameState headerColumn) {
 		Map<Integer, Double> tgtMap = new HashMap<Integer, Double>();
 		
-		int dHeader = (headerColumn == HeaderColumnFormat.NONE ? 0 : 1);
+		int dHeader = (headerColumn == RowNameState.NONE ? 0 : 1);
 		
 		int start = undirected ? rowNumber : 0;
 		for (int index = 0; index + start + dHeader < row.length; index++) {
@@ -79,36 +78,36 @@ public class MatrixParser {
 		return tgtMap;
 	}
 
-	public void importFile(InputStream is, Delimiter delim, boolean undirected, HeaderColumnFormat headerColumn,
-			HeaderRowFormat headerRow) {
+	public void importFile(InputStream is, Delimiter delim, boolean undirected, RowNameState headerColumn,
+			ColumnNameState headerRow) {
 
 		BufferedReader input = new BufferedReader(new InputStreamReader(is));
 		try {
 			String[] row;
 			int rowNumber = 0;
-			boolean pastHeader = headerRow == HeaderRowFormat.NONE;
+			boolean pastHeader = headerRow == ColumnNameState.NONE;
 			while ((row = readRow(input, delim)) != null) {
 				if (row.length == 0)
 					continue;
 				if (rowNumber == 0 && !pastHeader) {
-					if (headerRow == HeaderRowFormat.NAMES) {
-						readColumnHeaders(row, headerColumn == HeaderColumnFormat.NAMES ? 1 : 0);
+					if (headerRow == ColumnNameState.NAMES) {
+						readColumnHeaders(row, headerColumn == RowNameState.NAMES ? 1 : 0);
 					}
 					pastHeader = true;
 					continue;
 				} else {
 					String name = "Node" + (rowNumber + 1);
 
-					if (headerColumn == HeaderColumnFormat.NAMES)
+					if (headerColumn == RowNameState.NAMES)
 						name = row[0];
-					else if (headerRow == HeaderRowFormat.NAMES)
+					else if (headerRow == ColumnNameState.NAMES)
 						name = targetNames.get(rowNumber);
 
 					sourceNames.add(name);
 					
 					Map<Integer, Double> tgtMap = parseRow(row, rowNumber, undirected, headerColumn);
 
-					if (headerRow != HeaderRowFormat.NAMES)
+					if (headerRow != ColumnNameState.NAMES)
 						targetNames.add(name);
 
 					edgeMap.put(rowNumber, tgtMap);
@@ -173,8 +172,8 @@ public class MatrixParser {
 		System.out.println(f.getAbsolutePath());
 		InputStream is = new FileInputStream(f);
 		
-		MatrixParser parser = new MatrixParser(is, Delimiter.TAB, true, false, HeaderColumnFormat.IGNORE,
-				HeaderRowFormat.NONE);
+		MatrixParser parser = new MatrixParser(is, Delimiter.TAB, true, false, RowNameState.IGNORE,
+				ColumnNameState.NONE);
 		System.out.println("Sources: " + String.join(", ", parser.sourceNames));
 		System.out.println("Targets: " + String.join(", ", parser.targetNames));
 		System.out.println("Edges: " + parser.edgeCount());

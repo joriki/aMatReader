@@ -1,13 +1,13 @@
 package org.cytoscape.aMatReader.internal.util;
 
-public enum HeaderColumnFormat {
+public enum RowNameState {
 	NAMES("First column contains node names"),
 	IGNORE("Skip first column"),
 	NONE("No header column");
 
 	String title;
 
-	HeaderColumnFormat(String title) {
+	RowNameState(String title) {
 		this.title = title;
 	}
 	

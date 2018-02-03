@@ -12,8 +12,8 @@ import java.util.Map;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResult;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
-import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
+import org.cytoscape.aMatReader.internal.util.RowNameState;
+import org.cytoscape.aMatReader.internal.util.ColumnNameState;
 import org.cytoscape.aMatReader.internal.util.MatrixParser;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.io.read.CyNetworkReader;
@@ -61,13 +61,13 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 
 	@Tunable(description = "Source node names in first column", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 15)
-	public ListSingleSelection<HeaderColumnFormat> headerColumn = new ListSingleSelection<HeaderColumnFormat>(
-			HeaderColumnFormat.values());
+	public ListSingleSelection<RowNameState> headerColumn = new ListSingleSelection<RowNameState>(
+			RowNameState.values());
 
 	@Tunable(description = "Target node names in first row", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 16)
-	public ListSingleSelection<HeaderRowFormat> headerRow = new ListSingleSelection<HeaderRowFormat>(
-			HeaderRowFormat.values());
+	public ListSingleSelection<ColumnNameState> headerRow = new ListSingleSelection<ColumnNameState>(
+			ColumnNameState.values());
 
 	@ProvidesTitle
 	public String getTitle() {
@@ -115,8 +115,8 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException {
 
 		Delimiter delim = delimiter.getSelectedValue();
-		HeaderColumnFormat headerColumn = this.headerColumn.getSelectedValue();
-		HeaderRowFormat headerRow = this.headerRow.getSelectedValue();
+		RowNameState headerColumn = this.headerColumn.getSelectedValue();
+		ColumnNameState headerRow = this.headerRow.getSelectedValue();
 		if (delim == null){
 			throw new NullPointerException("Delimiter value not recognized");
 		}

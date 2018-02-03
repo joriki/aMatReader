@@ -16,8 +16,8 @@ import javax.ws.rs.core.Response.Status;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.tasks.AMatReaderTask;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
-import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
+import org.cytoscape.aMatReader.internal.util.RowNameState;
+import org.cytoscape.aMatReader.internal.util.ColumnNameState;
 import org.cytoscape.ci.CIErrorFactory;
 import org.cytoscape.ci.CIResponseFactory;
 import org.cytoscape.ci.CIWrapping;
@@ -135,9 +135,9 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	public Map<String, Object> buildContext(AMatReaderParameters params) throws Exception {
 		HashMap<String, Object> context = new HashMap<String, Object>();
 		ListSingleSelection<Delimiter> delim = new ListSingleSelection<Delimiter>(Delimiter.values());
-		ListSingleSelection<HeaderRowFormat> row = new ListSingleSelection<HeaderRowFormat>(HeaderRowFormat.values());
-		ListSingleSelection<HeaderColumnFormat> column = new ListSingleSelection<HeaderColumnFormat>(
-				HeaderColumnFormat.values());
+		ListSingleSelection<ColumnNameState> row = new ListSingleSelection<ColumnNameState>(ColumnNameState.values());
+		ListSingleSelection<RowNameState> column = new ListSingleSelection<RowNameState>(
+				RowNameState.values());
 
 		row.setSelectedValue(params.headerRow);
 		column.setSelectedValue(params.headerColumn);
@@ -148,10 +148,10 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 			throw new NullPointerException("Delimiter value not recognized. Must be one of " + Delimiter.values());
 		}
 		if(row.getSelectedValue() == null){
-			throw new NullPointerException("Unrecognized row header value. Must be one of " + HeaderRowFormat.values());
+			throw new NullPointerException("Unrecognized row header value. Must be one of " + ColumnNameState.values());
 		}
 		if(column.getSelectedValue() == null){
-			throw new NullPointerException("Unrecognized column header value. Must be one of " + HeaderColumnFormat.values());
+			throw new NullPointerException("Unrecognized column header value. Must be one of " + RowNameState.values());
 		}
 		
 		context.put("delimiter", delim);

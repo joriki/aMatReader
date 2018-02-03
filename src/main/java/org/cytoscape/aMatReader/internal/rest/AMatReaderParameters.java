@@ -1,8 +1,8 @@
 package org.cytoscape.aMatReader.internal.rest;
 
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
-import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
+import org.cytoscape.aMatReader.internal.util.RowNameState;
+import org.cytoscape.aMatReader.internal.util.ColumnNameState;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -32,10 +32,10 @@ public class AMatReaderParameters {
 	public String interactionName = "interacts with";
 	
 	@ApiModelProperty(value="Source Header Column", required=false)
-	public HeaderColumnFormat headerColumn = HeaderColumnFormat.NAMES;
+	public RowNameState headerColumn = RowNameState.NAMES;
 	
 	@ApiModelProperty(value="Target Header Row", required=false)
-	public HeaderRowFormat headerRow = HeaderRowFormat.NAMES;
+	public ColumnNameState headerRow = ColumnNameState.NAMES;
 
 	
 	

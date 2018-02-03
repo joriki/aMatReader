@@ -31,8 +31,8 @@ import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderParameters;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.HeaderColumnFormat;
-import org.cytoscape.aMatReader.internal.util.HeaderRowFormat;
+import org.cytoscape.aMatReader.internal.util.RowNameState;
+import org.cytoscape.aMatReader.internal.util.ColumnNameState;
 import org.cytoscape.aMatReader.internal.util.MatrixParser;
 import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyNetwork;
@@ -54,8 +54,8 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 	private JDialog optionsDialog;
 	private JButton importButton;
 	private JComboBox<Delimiter> delimiterComboBox;
-	private JComboBox<HeaderColumnFormat> headerColumnComboBox;
-	private JComboBox<HeaderRowFormat> headerRowComboBox;
+	private JComboBox<RowNameState> headerColumnComboBox;
+	private JComboBox<ColumnNameState> headerRowComboBox;
 	private JPanel optionsPanel, advancedPanel;
 	private JComboBox<NetworkWrapper> networkCombo;
 	private JCheckBox undirectedCheckBox, ignoreZerosCheckbox;
@@ -106,7 +106,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 		public String toString() {
 			if (network == null) {
-				return "-- Create new network collection --";
+				return "-- Create new collection --";
 			}
 			return network.getRow(network).get(CyNetwork.NAME, String.class);
 		}
@@ -143,18 +143,18 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		return interactionEntry;
 	}
 
-	private JComboBox<HeaderColumnFormat> getHeaderColumnComboBox() {
+	private JComboBox<RowNameState> getHeaderColumnComboBox() {
 
 		if (headerColumnComboBox == null) {
-			headerColumnComboBox = new JComboBox<HeaderColumnFormat>(HeaderColumnFormat.values());
+			headerColumnComboBox = new JComboBox<RowNameState>(RowNameState.values());
 			headerColumnComboBox.setSelectedItem(headerColumnComboBox);
 		}
 		return headerColumnComboBox;
 	}
 
-	private JComboBox<HeaderRowFormat> getHeaderRowComboBox() {
+	private JComboBox<ColumnNameState> getHeaderRowComboBox() {
 		if (headerRowComboBox == null) {
-			headerRowComboBox = new JComboBox<HeaderRowFormat>(HeaderRowFormat.values());
+			headerRowComboBox = new JComboBox<ColumnNameState>(ColumnNameState.values());
 			headerRowComboBox.setSelectedItem(headerRowComboBox);
 		}
 		return headerRowComboBox;
@@ -219,6 +219,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 				networkCombo.addItem(new NetworkWrapper(network));
 			}
 			networkCombo.setEnabled(networkCombo.getItemCount() > 1);
+			networkCombo.setEditable(true);
 		}
 		return networkCombo;
 	}
@@ -305,8 +306,8 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		AMatReaderParameters params = new AMatReaderParameters();
 		params.delimiter = (Delimiter) delimiterComboBox.getSelectedItem();
 
-		params.headerColumn = (HeaderColumnFormat) headerColumnComboBox.getSelectedItem();
-		params.headerRow = (HeaderRowFormat) headerRowComboBox.getSelectedItem();
+		params.headerColumn = (RowNameState) headerColumnComboBox.getSelectedItem();
+		params.headerRow = (ColumnNameState) headerRowComboBox.getSelectedItem();
 		params.interactionName = interactionEntry.getText();
 		params.undirected = undirectedCheckBox.isSelected();
 		params.ignoreZeros = ignoreZerosCheckbox.isSelected();

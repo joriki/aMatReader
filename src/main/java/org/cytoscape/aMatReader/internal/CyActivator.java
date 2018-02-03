@@ -46,13 +46,13 @@ public class CyActivator extends AbstractCyActivator {
 		final BasicCyFileFilter aMatFileFilter = new BasicCyFileFilter(new String[] { "mat", "adj" },
 				new String[] { "application/text" }, "Adjacency Matrix Reader", DataCategory.NETWORK, streamUtil);
 		AMatReaderWrapperTaskFactory wrapperService = new AMatReaderWrapperTaskFactory(resourceManager, aMatFileFilter);
-
+		
 		Properties wrapperProps = new Properties();
 		wrapperProps.setProperty("readerDescription", "Matrix reader");
 		wrapperProps.setProperty("readerId", "aMatReader");
 		wrapperProps.setProperty(IN_MENU_BAR, "false");
-		registerAllServices(bc, wrapperService, wrapperProps);
-
+		registerAllServices(bc, wrapperService, wrapperProps);		
+		
 		AMatReaderResource restService = new AMatReaderResourceImpl(serviceRegistrar, resourceManager);
 		registerService(bc, restService, AMatReaderResource.class);
 	}

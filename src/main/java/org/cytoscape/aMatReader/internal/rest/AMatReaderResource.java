@@ -63,6 +63,7 @@ public interface AMatReaderResource {
 	public abstract Response aMatReader(
 			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters);
 
+	
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)

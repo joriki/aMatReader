@@ -1,6 +1,5 @@
 package org.cytoscape.aMatReader.internal.tasks;
 
-import java.io.File;
 import java.io.InputStream;
 
 import org.cytoscape.aMatReader.internal.ResourceManager;
@@ -19,11 +18,9 @@ public class AMatReaderWrapperTaskFactory extends AbstractInputStreamTaskFactory
 
 	@Override
 	public TaskIterator createTaskIterator(InputStream is, String inputName) {
-		if (inputName.startsWith("file:")) {
-			File f = new File(inputName);
-			inputName = f.getName();
-		}
-		inputName = resourceManager.naming.getSuggestedNetworkTitle(inputName);
+		if (!inputName.startsWith("file:"))
+			inputName = resourceManager.naming.getSuggestedNetworkTitle(inputName);
+		
 		return new TaskIterator(new AMatReaderWrapperTask(is, inputName, resourceManager));
 	}
 

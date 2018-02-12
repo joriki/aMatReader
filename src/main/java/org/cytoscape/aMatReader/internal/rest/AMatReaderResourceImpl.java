@@ -1,5 +1,6 @@
 package org.cytoscape.aMatReader.internal.rest;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,8 +17,8 @@ import javax.ws.rs.core.Response.Status;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.tasks.AMatReaderTask;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.RowNameState;
-import org.cytoscape.aMatReader.internal.util.ColumnNameState;
+import org.cytoscape.aMatReader.internal.util.MatrixSymmetry;
+import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
 import org.cytoscape.ci.CIErrorFactory;
 import org.cytoscape.ci.CIResponseFactory;
 import org.cytoscape.ci.CIWrapping;
@@ -27,7 +28,6 @@ import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNetworkManager;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.work.FinishStatus;
-import org.cytoscape.work.SynchronousTaskManager;
 import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.util.ListSingleSelection;
 import org.slf4j.Logger;
@@ -40,7 +40,6 @@ import io.swagger.annotations.Api;
 public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	private final ResourceManager resourceManager;
-	private final SynchronousTaskManager<?> taskManager;
 	private final CyNetworkManager netMngr;
 
 	private final CIResponseFactory ciResponseFactory;
@@ -49,7 +48,6 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	public AMatReaderResourceImpl(final CyServiceRegistrar registrar, final ResourceManager resourceManager) {
 		super();
-		this.taskManager = registrar.getService(SynchronousTaskManager.class);
 		this.resourceManager = resourceManager;
 		this.ciErrorFactory = registrar.getService(CIErrorFactory.class);
 		this.ciResponseFactory = registrar.getService(CIResponseFactory.class);
@@ -135,30 +133,25 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	public Map<String, Object> buildContext(AMatReaderParameters params) throws Exception {
 		HashMap<String, Object> context = new HashMap<String, Object>();
 		ListSingleSelection<Delimiter> delim = new ListSingleSelection<Delimiter>(Delimiter.values());
-		ListSingleSelection<ColumnNameState> row = new ListSingleSelection<ColumnNameState>(ColumnNameState.values());
-		ListSingleSelection<RowNameState> column = new ListSingleSelection<RowNameState>(
-				RowNameState.values());
-
-		row.setSelectedValue(params.headerRow);
-		column.setSelectedValue(params.headerColumn);
+		
 		Delimiter delimiter = params.delimiter;
 		delim.setSelectedValue(delimiter);
 
-		if (delim.getSelectedValue() == null){
+		if (delim.getSelectedValue() == null) {
 			throw new NullPointerException("Delimiter value not recognized. Must be one of " + Delimiter.values());
 		}
-		if(row.getSelectedValue() == null){
-			throw new NullPointerException("Unrecognized row header value. Must be one of " + ColumnNameState.values());
+		if (params.symmetry == null) {
+			throw new NullPointerException(
+					"Unrecognized value for symmetry. Must be one of [ASYMMETRIC, SYMMETRIC_TOP, SYMMETRIC_BOTTOM]");
 		}
-		if(column.getSelectedValue() == null){
-			throw new NullPointerException("Unrecognized column header value. Must be one of " + RowNameState.values());
-		}
-		
+
 		context.put("delimiter", delim);
-		context.put("undirected", params.undirected);
+		context.put("symmetry", params.symmetry);
 		context.put("interactionName", params.interactionName);
-		context.put("headerRow", row);
-		context.put("headerColumn", column);
+		context.put("rowNames", params.rowNames);
+		context.put("columnNames", params.columnNames);
+		context.put("ignoreZeros", params.ignoreZeros);
+		context.put("removeColumnPrefix", params.removeColumnPrefix);
 
 		return context;
 	}
@@ -169,7 +162,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 		for (String f : params.files) {
 			try {
 				CIResponse<?> response = importFile(net, f, context);
-				
+
 				if (response instanceof AMatReaderResponse) {
 					Long suid = taskObserver.aMatResponse.data.suid;
 					if (net == null && suid != null) {
@@ -205,13 +198,14 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	public CIResponse<?> runTask(CyNetwork network, InputStream is, String name, Map<String, Object> context)
 			throws IOException, NullPointerException {
 		AMatReaderTask task;
+		ResettableBufferedReader reader = new ResettableBufferedReader(is);
 		if (network == null)
-			task = new AMatReaderTask(is, name, resourceManager);
+			task = new AMatReaderTask(reader, name, resourceManager);
 		else
-			task = new AMatReaderTask(network, is, name, resourceManager);
+			task = new AMatReaderTask(network, reader, name, resourceManager);
 
-		taskManager.setExecutionContext(context);
-		taskManager.execute(new TaskIterator(task));
+		resourceManager.taskManager.setExecutionContext(context);
+		resourceManager.taskManager.execute(new TaskIterator(task));
 
 		taskObserver.taskFinished(task);
 
@@ -223,6 +217,14 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 		File f = new File(filename);
 		InputStream is = new FileInputStream(f);
 		return runTask(network, is, f.getName(), context);
+
+	}
+
+	public CIResponse<?> importString(String matrix, String name, Map<String, Object> context)
+			throws NullPointerException, IOException {
+		
+		ByteArrayInputStream bais = new ByteArrayInputStream(matrix.getBytes());
+		return runTask(null, bais, name, context);
 
 	}
 

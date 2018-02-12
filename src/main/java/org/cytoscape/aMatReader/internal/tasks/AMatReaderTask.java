@@ -1,7 +1,6 @@
 package org.cytoscape.aMatReader.internal.tasks;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,8 +11,8 @@ import java.util.Map;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResult;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.RowNameState;
-import org.cytoscape.aMatReader.internal.util.ColumnNameState;
+import org.cytoscape.aMatReader.internal.util.MatrixSymmetry;
+import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
 import org.cytoscape.aMatReader.internal.util.MatrixParser;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.io.read.CyNetworkReader;
@@ -40,16 +39,16 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	private CyNetwork network;
 
 	private final Map<Object, CyNode> nodeMap;
-	private final InputStream inputStream;
+	private final ResettableBufferedReader reader;
 	private final ResourceManager rm;
 	private final String SOURCE_NAME = "SourceNode";
 	private final String TARGET_NAME = "TargetNode";
 
-	@Tunable(description = "Delimiter between cells", gravity = 11)
+	@Tunable(description = "Delimiter", gravity = 11)
 	public ListSingleSelection<Delimiter> delimiter = new ListSingleSelection<>(Delimiter.values());
 
-	@Tunable(description = "Treat edges as undirected", gravity = 12)
-	public boolean undirected = false;
+	@Tunable(description = "Matrix symmetry", gravity = 12)
+	public MatrixSymmetry symmetry = MatrixSymmetry.ASYMMETRIC;
 
 	@Tunable(description = "Ignore zero values", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 13)
@@ -59,33 +58,35 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 14)
 	public String interactionName = "interacts with";
 
-	@Tunable(description = "Source node names in first column", groups = {
+	@Tunable(description = "Row names", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 15)
-	public ListSingleSelection<RowNameState> headerColumn = new ListSingleSelection<RowNameState>(
-			RowNameState.values());
+	public boolean rowNames = true;
 
-	@Tunable(description = "Target node names in first row", groups = {
+	@Tunable(description = "Column names", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 16)
-	public ListSingleSelection<ColumnNameState> headerRow = new ListSingleSelection<ColumnNameState>(
-			ColumnNameState.values());
+	public boolean columnNames = true;
+
+	@Tunable(description = "Remove column prefix", groups = {
+			"Advanced Options" }, params = "displayState=collapsed", gravity = 17)
+	public boolean removeColumnPrefix = false;
 
 	@ProvidesTitle
 	public String getTitle() {
 		return "Adjacency Matrix Reader";
 	}
 
-	public AMatReaderTask(final InputStream inputStream, final String columnName, final ResourceManager rm) {
+	public AMatReaderTask(final ResettableBufferedReader reader, final String columnName, final ResourceManager rm) {
 		super();
-		this.inputStream = inputStream;
+		this.reader = reader;
 		nodeMap = new HashMap<Object, CyNode>();
 		this.columnName = columnName;
 		this.rm = rm;
 	}
 
-	public AMatReaderTask(final CyNetwork network, final InputStream inputStream, final String columnName,
+	public AMatReaderTask(final CyNetwork network, final ResettableBufferedReader reader, final String columnName,
 			final ResourceManager rm) {
 		super();
-		this.inputStream = inputStream;
+		this.reader = reader;
 		this.network = network;
 		nodeMap = new HashMap<Object, CyNode>();
 		this.columnName = columnName;
@@ -115,21 +116,20 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException {
 
 		Delimiter delim = delimiter.getSelectedValue();
-		RowNameState headerColumn = this.headerColumn.getSelectedValue();
-		ColumnNameState headerRow = this.headerRow.getSelectedValue();
-		if (delim == null){
+		if (delim == null) {
 			throw new NullPointerException("Delimiter value not recognized");
 		}
-		
-		final MatrixParser parser = new MatrixParser(inputStream, delim, undirected, ignoreZeros, headerColumn,
-				headerRow);
 
-		//String netName = rm.naming.getSuggestedNetworkTitle(columnName);
+		final MatrixParser parser = new MatrixParser(reader, delim, ignoreZeros, rowNames, columnNames,
+				symmetry);
+
+		if (removeColumnPrefix)
+			parser.removeColumnPrefix();
 
 		if (network == null) {
 			network = rm.netFactory.createNetwork();
 			rm.netManager.addNetwork(network);
-			
+
 			createView = true;
 		} else {
 			for (CyNode node : network.getNodeList()) {
@@ -137,26 +137,26 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 				nodeMap.put(key, node);
 			}
 		}
-		
+
 		createColumns();
-		for (int i = 0; i < parser.sourceCount(); i++) {
-			String name = parser.getSourceName(i);
+		for (int i = 0; i < parser.getRowCount(); i++) {
+			String name = parser.getRowName(i);
 			createNode(name, SOURCE_NAME);
-			
+
 		}
-		
-		for (int i = 0; i < parser.targetCount(); i++) {
-			String name = parser.getTargetName(i);
+
+		for (int i = 0; i < parser.getColumnCount(); i++) {
+			String name = parser.getColumnName(i);
 			createNode(name, TARGET_NAME);
 		}
-		
+
 		int newEdgeCount = 0, updatedEdgeCount = 0;
 		Map<Integer, Map<Integer, Double>> edgeMap = parser.getEdges();
 		for (int src : edgeMap.keySet()) {
 			Map<Integer, Double> tgtMap = edgeMap.get(src);
-			String srcName = parser.getSourceName(src);
+			String srcName = parser.getRowName(src);
 			for (int tgt : tgtMap.keySet()) {
-				String tgtName = parser.getTargetName(tgt);
+				String tgtName = parser.getColumnName(tgt);
 				Double value = tgtMap.get(tgt);
 				boolean added = createEdge(srcName, tgtName, value);
 
@@ -168,17 +168,17 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 			}
 		}
 
-		inputStream.close();
+		reader.close();
 
 		rm.eventHelper.flushPayloadEvents();
-		
+
 		if (createView && network.getEdgeCount() < 10000) {
 			layoutNetwork(network);
 		}
 
 		taskMonitor.setProgress(1.0);
 		response = new AMatReaderResponse(network.getSUID(), newEdgeCount, updatedEdgeCount);
-		
+
 	}
 
 	private void layoutNetwork(CyNetwork network) {
@@ -239,7 +239,7 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 		CyEdge edge = null;
 
 		boolean created = false;
-		
+		boolean undirected = symmetry != MatrixSymmetry.ASYMMETRIC;
 		for (CyEdge e : network.getConnectingEdgeList(src, tgt, CyEdge.Type.ANY)) {
 			if ((undirected && !e.isDirected())
 					|| (!undirected && e.isDirected() && e.getSource() == src && e.getTarget() == tgt)) {
@@ -276,9 +276,10 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	}
 
 	private static final String getResultString(AMatReaderResult result) {
-		return "Created " + result.newEdges + " new edges and updated " + result.updatedEdges + " in network with SUID " + result.suid;
+		return "Created " + result.newEdges + " new edges and updated " + result.updatedEdges + " in network with SUID "
+				+ result.suid;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public <R> R getResults(Class<? extends R> type) {
@@ -288,19 +289,19 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 		} else if (type.equals(AMatReaderResponse.class)) {
 			return (R) response;
 		} else if (type.equals(JSONResult.class)) {
-			return (R)getJson(response.data);
+			return (R) getJson(response.data);
 		}
 		return null;
 	}
 
 	public final static String getJson(AMatReaderResult result) {
-		return "{\"newEdges\": " + result.newEdges + ", \"updatedEdges\": " + result.updatedEdges + ", \"suid\": " + result.suid + "}";
+		return "{\"newEdges\": " + result.newEdges + ", \"updatedEdges\": " + result.updatedEdges + ", \"suid\": "
+				+ result.suid + "}";
 	}
 
 	@Override
 	public List<Class<?>> getResultClasses() {
-		return Collections
-				.unmodifiableList(Arrays.asList(String.class, AMatReaderResponse.class, JSONResult.class));
+		return Collections.unmodifiableList(Arrays.asList(String.class, AMatReaderResponse.class, JSONResult.class));
 	}
 
 	@Override

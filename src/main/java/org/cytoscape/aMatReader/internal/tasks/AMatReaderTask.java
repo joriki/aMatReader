@@ -30,7 +30,6 @@ import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.Tunable;
 import org.cytoscape.work.json.JSONResult;
-import org.cytoscape.work.util.ListSingleSelection;
 
 public class AMatReaderTask extends AbstractTask implements CyNetworkReader, ObservableTask {
 	private String columnName;
@@ -45,7 +44,7 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	private final String TARGET_NAME = "TargetNode";
 
 	@Tunable(description = "Delimiter", gravity = 11)
-	public ListSingleSelection<Delimiter> delimiter = new ListSingleSelection<>(Delimiter.values());
+	public Delimiter delimiter = Delimiter.TAB;
 
 	@Tunable(description = "Matrix symmetry", gravity = 12)
 	public MatrixSymmetry symmetry = MatrixSymmetry.ASYMMETRIC;
@@ -115,12 +114,14 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	@Override
 	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException {
 
-		Delimiter delim = delimiter.getSelectedValue();
-		if (delim == null) {
+		if (delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized");
 		}
+		if (symmetry == null){
+			throw new NullPointerException("Symmetry value not recognized");
+		}
 
-		final MatrixParser parser = new MatrixParser(reader, delim, ignoreZeros, rowNames, columnNames,
+		final MatrixParser parser = new MatrixParser(reader, delimiter, ignoreZeros, rowNames, columnNames,
 				symmetry);
 
 		if (removeColumnPrefix)

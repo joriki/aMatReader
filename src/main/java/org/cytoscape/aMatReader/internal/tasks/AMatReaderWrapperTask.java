@@ -100,6 +100,19 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		}
 
 	}
+	private HashMap<String, Object> buildContext(AMatReaderParameters params){
+		HashMap<String, Object> context = new HashMap<String, Object>();
+		
+		context.put("delimiter", params.delimiter);
+		context.put("ignoreZeros", params.ignoreZeros);
+		context.put("interactionName", params.interactionName);
+		context.put("removeColumnPrefix", params.removeColumnPrefix);
+		context.put("symmetry", params.symmetry);
+		context.put("rowNames", params.rowNames);
+		context.put("columnNames", params.columnNames);
+		
+		return context;
+	}
 
 	private CyNetwork importMatrix(CyNetwork network, ResettableBufferedReader reader, String name,
 			AMatReaderParameters params) {
@@ -110,14 +123,15 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		} else {
 			task = new AMatReaderTask(reader, name, resourceManager);
 		}
-
+		/*
 		task.delimiter.setSelectedValue(params.delimiter);
 		task.ignoreZeros = params.ignoreZeros;
 		task.interactionName = params.interactionName;
 		task.removeColumnPrefix = params.removeColumnPrefix;
 		task.symmetry = params.symmetry;
-
-		// taskManager.setExecutionContext(context);
+		*/
+		HashMap<String, Object> context = buildContext(params);
+		resourceManager.taskManager.setExecutionContext(context);
 		resourceManager.taskManager.execute(new TaskIterator(task));
 
 		if (network == null) {

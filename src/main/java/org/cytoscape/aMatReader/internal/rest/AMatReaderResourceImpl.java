@@ -17,7 +17,6 @@ import javax.ws.rs.core.Response.Status;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.tasks.AMatReaderTask;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.MatrixSymmetry;
 import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
 import org.cytoscape.ci.CIErrorFactory;
 import org.cytoscape.ci.CIResponseFactory;

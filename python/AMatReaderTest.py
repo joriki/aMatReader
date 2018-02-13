@@ -30,10 +30,11 @@ SAMPLE_NO_HEADERS = os.path.join(SAMPLE_DIR, "sampleNoHeaders.mat")
 BASE_DATA = {
   "files": [SAMPLE_FILE],
   "delimiter": "TAB",
-  "undirected": False,
+  "ignoreZeros": True,
+  "symmetry": "ASYMMETRIC",
   "interactionName": "interacts with",
-  "headerColumn": "NAMES",
-  "headerRow": "NAMES"
+  "rowNames": True,
+  "columnNames": True
 }
 
 class AMatReaderTestCase(unittest.TestCase):

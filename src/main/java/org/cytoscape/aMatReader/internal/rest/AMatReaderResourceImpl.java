@@ -28,7 +28,6 @@ import org.cytoscape.model.CyNetworkManager;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.work.FinishStatus;
 import org.cytoscape.work.TaskIterator;
-import org.cytoscape.work.util.ListSingleSelection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,12 +130,8 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	public Map<String, Object> buildContext(AMatReaderParameters params) throws Exception {
 		HashMap<String, Object> context = new HashMap<String, Object>();
-		ListSingleSelection<Delimiter> delim = new ListSingleSelection<Delimiter>(Delimiter.values());
-		
-		Delimiter delimiter = params.delimiter;
-		delim.setSelectedValue(delimiter);
 
-		if (delim.getSelectedValue() == null) {
+		if (params.delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized. Must be one of " + Delimiter.values());
 		}
 		if (params.symmetry == null) {
@@ -144,7 +139,7 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 					"Unrecognized value for symmetry. Must be one of [ASYMMETRIC, SYMMETRIC_TOP, SYMMETRIC_BOTTOM]");
 		}
 
-		context.put("delimiter", delim);
+		context.put("delimiter", params.delimiter);
 		context.put("symmetry", params.symmetry);
 		context.put("interactionName", params.interactionName);
 		context.put("rowNames", params.rowNames);

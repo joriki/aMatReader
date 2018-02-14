@@ -3,7 +3,6 @@ package org.cytoscape.aMatReader.internal.util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -91,20 +90,20 @@ public class MatrixParser {
 					pastColumnNames = true;
 					continue;
 				} else {
-					int start = matrixTriangles == MatrixSymmetry.SYMMETRIC_TOP ? rowNumber+1 : 0;
-					int end = matrixTriangles == MatrixSymmetry.SYMMETRIC_BOTTOM ? rowNumber+1 : row.length;
+					int start = matrixTriangles == MatrixSymmetry.SYMMETRIC_TOP ? rowNumber + 1 : 0;
+					int end = matrixTriangles == MatrixSymmetry.SYMMETRIC_BOTTOM ? rowNumber + 1 : row.length;
 
 					if (hasRowNames) {
 						rowNames.add(row[0]);
 						row = Arrays.copyOfRange(row, 1, row.length);
 					}
 					Map<Integer, Double> tgtMap = parseRow(row, start, end);
-					
+
 					edgeMap.put(rowNumber, tgtMap);
 				}
 				rowNumber++;
 			}
-			
+
 			if (hasRowNames && !hasColumnNames)
 				columnNames = new PrefixedVector(rowNames);
 			else if (hasColumnNames && !hasRowNames)
@@ -146,7 +145,7 @@ public class MatrixParser {
 
 	public static class MatrixParameterPrediction {
 		public Delimiter delimiter = Delimiter.TAB;
-		public boolean hasRowNames = true, hasColumnNames = true;
+		public boolean hasRowNames = false, hasColumnNames = false;
 		public String columnPrefix = "";
 	}
 
@@ -212,29 +211,27 @@ public class MatrixParser {
 			}
 	}
 
-	public static void main(String[] args) throws FileNotFoundException {
-		File f = new File("/Users/bsettle/Desktop/adjs/simval_orig.adj");
-		
+	public static void main(String[] args) throws IOException {
+		// File f = new File("/Users/bsettle/Desktop/adjs/simval_orig.adj");
+		File f = new File("/Users/bsettle/git/aMatReader/samples/sampleNoHeaders.mat");
+
 		InputStream is = new FileInputStream(f);
 
 		ResettableBufferedReader reader = new ResettableBufferedReader(is);
-		MatrixParameterPrediction p = new MatrixParameterPrediction();
-		
+		MatrixParameterPrediction p = MatrixParser.predictParameters(reader);
 		MatrixParser parser = new MatrixParser(reader, p.delimiter, false, p.hasRowNames, p.hasColumnNames,
 				MatrixSymmetry.ASYMMETRIC);
-		for (int row = 0; row < parser.getRowCount(); row++){
+		for (int row = 0; row < parser.getRowCount(); row++) {
 			Map<Integer, Double> map = parser.edgeMap.get(row);
-			for (int col : map.keySet()){
+			for (int col : map.keySet()) {
 				System.out.println(row + " " + col);
 				String source = parser.getRowName(row);
 				String column = parser.getColumnName(col);
 				System.out.println(source + " " + column);
-				
+
 			}
 		}
 		System.out.println(parser.edgeCount());
-		
-		
-		
+
 	}
 }

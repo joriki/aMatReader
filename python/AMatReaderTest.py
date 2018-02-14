@@ -246,6 +246,28 @@ class AMatReaderTestCase(unittest.TestCase):
         _amatreader.remove_network(result['suid'])
 
 
+    def import_numpy(self):
+        _amatreader = AMatReader()  # assumes Cytoscape answers at base_url
+        mat = np.random.random([5, 5])
+        data = BASE_DATA.copy()
+        data['columnNames'] = False
+        data['rowNames'] = False
+        data['symmetry'] = 'SYMMETRIC_TOP'
+        result = _amatreader.import_numpy(mat, data, names=['A', 'B', 'C', 'D', 'E'])
+        assert result['newEdges'] == 10, "Should be 10 new edges not " + result['newEdges']
+        _amatreader.remove_network(result['suid'])
+
+    def import_pandas(self):
+        import pandas as pd
+        _amatreader = AMatReader(CyRESTInstance(base_url=BASE_URL))  # assumes Cytoscape answers at base_url
+        data = BASE_DATA.copy()
+        data['rowNames'] = False
+        df = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
+            columns=['a', 'b', 'c', 'd', 'e'])
+        result = _amatreader.import_pandas(df, data)
+        assert result['newEdges'] == 25, "Should be 25 newEdges not " + result['newEdges']
+        _amatreader.remove_network(result['suid'])
+
 
 def suite():
     amatreader_suite = unittest.makeSuite(AMatReaderTestCase, "test")

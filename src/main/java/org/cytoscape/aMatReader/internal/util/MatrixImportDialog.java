@@ -210,7 +210,7 @@ public class MatrixImportDialog extends JDialog {
 		addRow("Delimiter: ", getDelimiterComboBox());
 		addRow("Interaction type: ", getInteractionEntry());
 		addRow("", getIgnoreZerosCheckBox());
-		JLabel label = new JLabel("Highlight the area(s) of the matrix to import");
+		JLabel label = new JLabel("Select the matrix area(s) to import");
 		label.setHorizontalAlignment(JLabel.CENTER);
 		addRow(null, label);
 		addRow(null, getMatrixButtons());
@@ -265,11 +265,13 @@ public class MatrixImportDialog extends JDialog {
 
 	public AMatReaderParameters getParameters() {
 		AMatReaderParameters params = new AMatReaderParameters();
-		params.delimiter = (Delimiter) delimiterComboBox.getSelectedItem();
-		params.ignoreZeros = ignoreZerosCheckBox.isSelected();
-		params.interactionName = interactionEntry.getText();
-		params.symmetry = matrixButtons.getTriangles();
-		params.removeColumnPrefix = removeColumnPrefixCheckBox.isSelected();
+		params.delimiter = (Delimiter) getDelimiterComboBox().getSelectedItem();
+		params.ignoreZeros = getIgnoreZerosCheckBox().isSelected();
+		params.interactionName = getInteractionEntry().getText();
+		params.symmetry = getMatrixButtons().getTriangles();
+		params.removeColumnPrefix = getRemoveColumnPrefixCheckBox().isSelected();
+		params.rowNames = getMatrixButtons().hasRowNames();
+		params.columnNames = getMatrixButtons().hasColumnNames();
 		return params;
 	}
 
@@ -285,7 +287,7 @@ public class MatrixImportDialog extends JDialog {
 		MatrixImportDialog d = new MatrixImportDialog(null);
 
 		try {
-			File f = new File("/Users/bsettle/Desktop/adjs/qval_orig.adj");
+			File f = new File("/Users/bsettle/git/aMatReader/samples/sampleNoHeaders.mat");
 			InputStream is = new FileInputStream(f);
 			ResettableBufferedReader reader = new ResettableBufferedReader(is);
 			MatrixParameterPrediction p = MatrixParser.predictParameters(reader);
@@ -298,6 +300,8 @@ public class MatrixImportDialog extends JDialog {
 		d.pack();
 
 		d.setVisible(true);
+		AMatReaderParameters params = d.getParameters();
+		System.out.println(params.ignoreZeros + " " + params.columnNames + " " + params.rowNames);
 	}
 
 	public CyNetwork getNetwork() {

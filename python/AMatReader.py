@@ -2,7 +2,6 @@ import json, requests
 import tempfile
 from CyCaller import CyCaller
 from CyRESTInstance import CyRESTInstance
-from TestConfig import BASE_URL, IMPOSSIBLE_URL
 import numpy as np
 
 BASE_DATA = {
@@ -22,22 +21,30 @@ class AMatReader:
 		self._cy_caller = CyCaller(cy_rest_instance)
 
 	def import_matrix(self, data):
-		""" Execute a simple diffusion on current network """
+		""" Import adjacency matrix file into Cytoscape """
 		return self._cy_caller.execute_post("/aMatReader/v1/import", json.dumps(data))
 
 	def extend_matrix(self, suid, data):
-		""" Execute a diffusion with options on current network """
+		""" Extend existing Cytoscape network with adjacency matrix file as new edge attribute """
 		url = "/aMatReader/v1/extend/" + str(suid)
 		return self._cy_caller.execute_post(url, json.dumps(data))
 
-	def import_numpy(self, matrix, data):
+	def import_numpy(self, matrix, data, names=[]):
+		""" Save matrix to temporary file and import into Cytoscape as adjacency matrix """
 		n, path = tempfile.mkstemp()
-		np.savetxt(path, matrix, delimiter='\t', fmt='%g')
+		args = {'delimiter':'\t', 'fmt':'%g'}
+		data['delimiter'] = 'TAB'
+		if names:
+			args['header'] = '\t'.join(names)
+			args['comments']='' # don't comment out the header line
+			data['columnNames'] = True
+		np.savetxt(path, matrix, **args)
 		data['files'] = [path]
 		return self._cy_caller.execute_post("/aMatReader/v1/import", json.dumps(data))
 
 
 	def import_pandas(self, df, data):
+		""" Save dataframe to temporary file and import into Cytoscape as adjacency matrix """
 		n, path = tempfile.mkstemp()
 		df.to_csv(path, sep='\t', index=False)
 		data['files'] = [path]
@@ -50,23 +57,5 @@ class AMatReader:
 		return requests.request("DELETE",
 								  self._cy_caller.cy_rest_instance.base_url + ":" + str(self._cy_caller.cy_rest_instance.port) + "/v1/networks/" + str(suid))
 
-def save_numpy():
-	_amatreader = AMatReader(CyRESTInstance(base_url=BASE_URL))  # assumes Cytoscape answers at base_url
-	mat = np.random.random([5, 5])
-	data = BASE_DATA.copy()
-	data['columnNames'] = False
-	data['rowNames'] = False
-	data['symmetry'] = 'SYMMETRIC_TOP'
-	_amatreader.import_numpy(mat, data)
-
-def save_pandas():
-	import pandas as pd
-	_amatreader = AMatReader(CyRESTInstance(base_url=BASE_URL))  # assumes Cytoscape answers at base_url
-	data = BASE_DATA.copy()
-	data['rowNames'] = False
-	df = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
-		columns=['a', 'b', 'c', 'd', 'e'])
-	_amatreader.import_pandas(df, data)
-
 if __name__ == '__main__':
-	save_pandas()
+	import_numpy()

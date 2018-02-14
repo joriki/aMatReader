@@ -59,15 +59,15 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 
 	@Tunable(description = "Row names", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 15)
-	public boolean rowNames = true;
+	public boolean rowNames;
 
 	@Tunable(description = "Column names", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 16)
-	public boolean columnNames = true;
+	public boolean columnNames;
 
 	@Tunable(description = "Remove column prefix", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 17)
-	public boolean removeColumnPrefix = false;
+	public boolean removeColumnPrefix;
 
 	@ProvidesTitle
 	public String getTitle() {

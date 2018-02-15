@@ -11,9 +11,9 @@ import java.util.Map;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResult;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.MatrixSymmetry;
 import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
 import org.cytoscape.aMatReader.internal.util.MatrixParser;
+import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParseException;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyEdge;
@@ -46,8 +46,8 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	@Tunable(description = "Delimiter", gravity = 11)
 	public Delimiter delimiter = Delimiter.TAB;
 
-	@Tunable(description = "Matrix symmetry", gravity = 12)
-	public MatrixSymmetry symmetry = MatrixSymmetry.ASYMMETRIC;
+	@Tunable(description = "Treat matrix as undirected", gravity = 12, longDescription = "The matrix of an undirected graph must be symmetric, and only the top triangle of the matrix is imported. Directed graphs make use of the entire matrix")
+	public boolean undirected = false;
 
 	@Tunable(description = "Ignore zero values", groups = {
 			"Advanced Options" }, params = "displayState=collapsed", gravity = 13)
@@ -112,17 +112,13 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	}
 
 	@Override
-	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException {
+	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException, MatrixParseException {
 
 		if (delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized");
 		}
-		if (symmetry == null){
-			throw new NullPointerException("Symmetry value not recognized");
-		}
-
-		final MatrixParser parser = new MatrixParser(reader, delimiter, ignoreZeros, rowNames, columnNames,
-				symmetry);
+		
+		final MatrixParser parser = new MatrixParser(reader, delimiter, ignoreZeros, rowNames, columnNames, undirected);
 
 		if (removeColumnPrefix)
 			parser.removeColumnPrefix();
@@ -240,7 +236,6 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 		CyEdge edge = null;
 
 		boolean created = false;
-		boolean undirected = symmetry != MatrixSymmetry.ASYMMETRIC;
 		for (CyEdge e : network.getConnectingEdgeList(src, tgt, CyEdge.Type.ANY)) {
 			if ((undirected && !e.isDirected())
 					|| (!undirected && e.isDirected() && e.getSource() == src && e.getTarget() == tgt)) {

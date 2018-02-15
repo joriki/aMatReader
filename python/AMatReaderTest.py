@@ -31,7 +31,7 @@ BASE_DATA = {
   "files": [SAMPLE_FILE],
   "delimiter": "TAB",
   "ignoreZeros": True,
-  "symmetry": "ASYMMETRIC",
+  "undirected": False,
   "interactionName": "interacts with",
   "rowNames": True,
   "columnNames": True
@@ -157,7 +157,7 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def test_amatreader_bad_format(self):
         data = BASE_DATA.copy()
-        data['symmetry'] = 'ERROR'
+        data['delimiter'] = 'ERROR'
 
         try:
             _amatreader.import_matrix(data)
@@ -191,18 +191,9 @@ class AMatReaderTestCase(unittest.TestCase):
 
         _amatreader.remove_network(result['suid'])
 
-    def test_amatreader_bottom_half(self):
+    def test_amatreader_undirected(self):
         data = BASE_DATA.copy()
-        data.update({'files': [SAMPLE_FILE], 'symmetry': 'SYMMETRIC_BOTTOM'})
-        result = _amatreader.import_matrix(data)
-        assert result['newEdges'] == 5, 'newEdges value should be 5, not %s' % result
-        assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
-
-        _amatreader.remove_network(result['suid'])
-
-    def test_amatreader_top_half(self):
-        data = BASE_DATA.copy()
-        data.update({"files": [SAMPLE_FILE], "symmetry": "SYMMETRIC_TOP"})
+        data.update({"files": [SAMPLE_FILE], "undirected": True})
         result = _amatreader.import_matrix(data)
         assert result['newEdges'] == 5, 'newEdges value should be 5, not %s' % result
         assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
@@ -252,7 +243,7 @@ class AMatReaderTestCase(unittest.TestCase):
         data = BASE_DATA.copy()
         data['columnNames'] = False
         data['rowNames'] = False
-        data['symmetry'] = 'SYMMETRIC_TOP'
+        data['undirected'] = 'true'
         result = _amatreader.import_numpy(mat, data, names=['A', 'B', 'C', 'D', 'E'])
         assert result['newEdges'] == 10, "Should be 10 new edges not " + result['newEdges']
         _amatreader.remove_network(result['suid'])

@@ -134,13 +134,9 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 		if (params.delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized. Must be one of " + Delimiter.values());
 		}
-		if (params.symmetry == null) {
-			throw new NullPointerException(
-					"Unrecognized value for symmetry. Must be one of [ASYMMETRIC, SYMMETRIC_TOP, SYMMETRIC_BOTTOM]");
-		}
 
 		context.put("delimiter", params.delimiter);
-		context.put("symmetry", params.symmetry);
+		context.put("undirected", params.undirected);
 		context.put("interactionName", params.interactionName);
 		context.put("rowNames", params.rowNames);
 		context.put("columnNames", params.columnNames);

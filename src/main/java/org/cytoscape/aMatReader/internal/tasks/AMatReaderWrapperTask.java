@@ -82,9 +82,6 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 	public void doImport(ResettableBufferedReader reader) {
 		MatrixImportDialog dialog = getDialog();
 		AMatReaderParameters params = dialog.getParameters();
-		if (params.symmetry == null) {
-			return;
-		}
 		CyNetwork net = dialog.getNetwork();
 		boolean newNetwork = net == null;
 
@@ -107,7 +104,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		context.put("ignoreZeros", params.ignoreZeros);
 		context.put("interactionName", params.interactionName);
 		context.put("removeColumnPrefix", params.removeColumnPrefix);
-		context.put("symmetry", params.symmetry);
+		context.put("undirected", params.undirected);
 		context.put("rowNames", params.rowNames);
 		context.put("columnNames", params.columnNames);
 		
@@ -123,13 +120,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		} else {
 			task = new AMatReaderTask(reader, name, resourceManager);
 		}
-		/*
-		task.delimiter.setSelectedValue(params.delimiter);
-		task.ignoreZeros = params.ignoreZeros;
-		task.interactionName = params.interactionName;
-		task.removeColumnPrefix = params.removeColumnPrefix;
-		task.symmetry = params.symmetry;
-		*/
+
 		HashMap<String, Object> context = buildContext(params);
 		resourceManager.taskManager.setExecutionContext(context);
 		resourceManager.taskManager.execute(new TaskIterator(task));

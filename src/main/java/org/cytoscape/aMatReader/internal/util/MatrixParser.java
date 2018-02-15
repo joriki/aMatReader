@@ -12,14 +12,25 @@ public class MatrixParser {
 	private PrefixedVector columnNames;
 	private final HashMap<Integer, Map<Integer, Double>> edgeMap;
 	private final boolean ignoreZeros;
+	
+	public class MatrixParseException extends Exception{
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 2747259808393035815L;
+
+		public MatrixParseException(String message){
+			super(message);
+		}
+	}
 
 	public MatrixParser(final ResettableBufferedReader reader, final Delimiter delim, final boolean ignoreZeros,
-			final boolean hasRowNames, boolean hasColumnNames, MatrixSymmetry matrixTriangles) {
+			final boolean hasRowNames, boolean hasColumnNames, boolean undirected) throws IOException, MatrixParseException {
 		this.ignoreZeros = ignoreZeros;
 		this.rowNames = new Vector<String>();
 		this.columnNames = new PrefixedVector();
 		edgeMap = new HashMap<Integer, Map<Integer, Double>>();
-		importFile(reader, delim, hasRowNames, hasColumnNames, matrixTriangles);
+		importFile(reader, delim, hasRowNames, hasColumnNames, undirected);
 	}
 
 	public int edgeCount() {
@@ -74,8 +85,7 @@ public class MatrixParser {
 	}
 
 	public void importFile(final ResettableBufferedReader reader, Delimiter delim, final boolean hasRowNames,
-			final boolean hasColumnNames, MatrixSymmetry matrixTriangles) {
-		try {
+			final boolean hasColumnNames, boolean undirected) throws IOException, MatrixParseException {
 			String[] row;
 			int rowNumber = 0;
 			boolean pastColumnNames = !hasColumnNames;
@@ -87,11 +97,15 @@ public class MatrixParser {
 					pastColumnNames = true;
 					continue;
 				} else {
-					int start = matrixTriangles == MatrixSymmetry.SYMMETRIC_TOP ? rowNumber + 1 : 0;
-					int end = matrixTriangles == MatrixSymmetry.SYMMETRIC_BOTTOM ? rowNumber + 1 : row.length;
+					int start = undirected ? rowNumber + 1 : 0;
+					int end = row.length;
 
 					if (hasRowNames) {
 						rowNames.add(row[0]);
+						if (hasColumnNames && undirected && !row[0].equals(columnNames.get(rowNumber))){
+							String message = "Node #" + rowNumber + " row " + row[0] + " != column " + columnNames.get(rowNumber);
+							throw new MatrixParseException("Matrix can only be imported as undirected if it is symmetric. " + message);
+						}
 						row = Arrays.copyOfRange(row, 1, row.length);
 					}
 					Map<Integer, Double> tgtMap = parseRow(row, start, end);
@@ -106,9 +120,6 @@ public class MatrixParser {
 			else if (hasColumnNames && !hasRowNames)
 				rowNames = columnNames;
 
-		} catch (IOException ioe) {
-			System.out.println("IOE");
-		}
 	}
 
 	String[] readRow(BufferedReader input, Delimiter delimiter) throws IOException {
@@ -189,8 +200,10 @@ public class MatrixParser {
 			if (pv.hasPrefix())
 				prediction.columnPrefix = pv.getPrefix();
 
-			if (prediction.hasRowNames && secondRow[0].startsWith(prediction.columnPrefix)) {
-				prediction.columnPrefix = "";
+			if (prediction.hasColumnNames && prediction.hasRowNames) {
+				if (secondRow[0].startsWith(prediction.columnPrefix)) {
+					prediction.columnPrefix = "";
+				}
 			}
 
 		} catch (IOException e) {

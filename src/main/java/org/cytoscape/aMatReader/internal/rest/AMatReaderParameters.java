@@ -1,7 +1,6 @@
 package org.cytoscape.aMatReader.internal.rest;
 
 import org.cytoscape.aMatReader.internal.util.Delimiter;
-import org.cytoscape.aMatReader.internal.util.MatrixSymmetry;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -21,8 +20,8 @@ public class AMatReaderParameters {
 	@ApiModelProperty(value = "Delimiter", example="TAB")
 	public Delimiter delimiter = Delimiter.TAB;
 	
-	@ApiModelProperty(value = "Matrix symmetry", example="ASYMMETRIC", required=false)
-	public MatrixSymmetry symmetry = MatrixSymmetry.ASYMMETRIC;
+	@ApiModelProperty(value = "Treat as undirected", example="false", required=false)
+	public boolean undirected = false;
 	
 	@ApiModelProperty(value = "Ignore zero values", example="true", required=false)
 	public boolean ignoreZeros = true;

@@ -252,7 +252,7 @@ public class MatrixImportDialog extends JDialog {
 
 	private MatrixTriangleSelector getMatrixButtons() {
 		if (matrixButtons == null) {
-			matrixButtons = new MatrixTriangleSelector(true, true, MatrixSymmetry.ASYMMETRIC);
+			matrixButtons = new MatrixTriangleSelector(true, true, false);
 			matrixButtons.setPreferredSize(new Dimension(200, 200));
 			matrixButtons.setMinimumSize(new Dimension(50, 150));
 		}
@@ -264,7 +264,7 @@ public class MatrixImportDialog extends JDialog {
 		params.delimiter = (Delimiter) getDelimiterComboBox().getSelectedItem();
 		params.ignoreZeros = getIgnoreZerosCheckBox().isSelected();
 		params.interactionName = getInteractionEntry().getText();
-		params.symmetry = getMatrixButtons().getTriangles();
+		params.undirected = getMatrixButtons().isUndirected();
 		params.removeColumnPrefix = getRemoveColumnPrefixCheckBox().isSelected();
 		params.rowNames = getMatrixButtons().hasRowNames();
 		params.columnNames = getMatrixButtons().hasColumnNames();
@@ -290,7 +290,7 @@ public class MatrixImportDialog extends JDialog {
 	}
 
 	public void updateOptions(String name, MatrixParameterPrediction prediction) {
-		getMatrixButtons().setButtons(prediction.hasRowNames, prediction.hasColumnNames, null, null);
+		getMatrixButtons().setButtons(prediction.hasRowNames, prediction.hasColumnNames, false);
 		getDelimiterComboBox().setSelectedItem(prediction.delimiter);
 		getColumnNameEntry().setText(name);
 		boolean prefixed = !prediction.columnPrefix.isEmpty();

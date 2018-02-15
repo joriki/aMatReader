@@ -3,11 +3,8 @@ package org.cytoscape.aMatReader.internal.util;
 import java.awt.*;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
-import java.awt.font.TextAttribute;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
-import java.util.Map;
-
 import javax.swing.*;
 
 public class MatrixTriangleSelector extends JPanel implements ComponentListener{
@@ -17,44 +14,38 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private ToggleTriangleAreaButton topRightButton, bottomLeftButton;
+	private ToggleDirectedButton directedButton;
 	private ToggleAreaButton rowNamesButton, columnNamesButton;
-	public MatrixTriangleSelector(boolean rowNames, boolean columnNames, MatrixSymmetry triangle) {
+	
+	public MatrixTriangleSelector(boolean rowNames, boolean columnNames, boolean undirected) {
 		super();
 		setLayout(null);
 		int width = 200, height = 200;
 		setSize(width, height);
 
-		topRightButton = new ToggleTriangleAreaButton("Top right", true);
-		topRightButton.setSelected(triangle != MatrixSymmetry.SYMMETRIC_BOTTOM);
-		bottomLeftButton = new ToggleTriangleAreaButton("Bottom left", false);
-		bottomLeftButton.setSelected(triangle != MatrixSymmetry.SYMMETRIC_TOP);
+		directedButton = new ToggleDirectedButton();
+		directedButton.setSelected(!undirected);
 		rowNamesButton = new ToggleAreaButton("Row Names");
 		rowNamesButton.setSelected(rowNames);
 		columnNamesButton = new ToggleAreaButton("Column Names");
 		columnNamesButton.setSelected(columnNames);
-
 		rowNamesButton.setTextRotation(-Math.PI / 2.0);
 
-		add(topRightButton);
-		add(bottomLeftButton);
+		add(directedButton);
 		add(rowNamesButton);
 		add(columnNamesButton);
 
 		int fontSize = 20;
-		topRightButton.setBounds(fontSize, fontSize, width - fontSize, height - fontSize);
-		bottomLeftButton.setBounds(fontSize, fontSize, width - fontSize, height - fontSize);
+		directedButton.setBounds(fontSize, fontSize, width - fontSize, height - fontSize);
 		rowNamesButton.setBounds(0, fontSize, fontSize, height - fontSize);
 		columnNamesButton.setBounds(fontSize, 0, width - fontSize, fontSize);
 		addComponentListener(this);
 		
 		}
 
-	public MatrixSymmetry getTriangles() {
-		if (topRightButton.isSelected()){
-			return bottomLeftButton.isSelected() ? MatrixSymmetry.ASYMMETRIC : MatrixSymmetry.SYMMETRIC_TOP;
-		}
-		return bottomLeftButton.isSelected() ? MatrixSymmetry.SYMMETRIC_BOTTOM : null;
+	public boolean isUndirected() {
+
+		return !directedButton.isSelected();
 	}
 	
 	public boolean hasRowNames(){
@@ -147,13 +138,14 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 				tx = xMean + (textHeight / 2);
 				ty = yMean + (textWidth / 2);
 			}
-
+			/*
 			if (!isSelected()) {
 				@SuppressWarnings("unchecked")
 				Map<TextAttribute, Object> attributes = (Map<TextAttribute, Object>) font.getAttributes();
 				attributes.put(TextAttribute.STRIKETHROUGH, TextAttribute.STRIKETHROUGH_ON);
 				font = new Font(attributes);
 			}
+			*/
 			g.setFont(font);
 			g.drawString(s, tx, ty);
 
@@ -174,38 +166,51 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 
 	}
 
-	class ToggleTriangleAreaButton extends ToggleAreaButton {
+	class ToggleDirectedButton extends ToggleAreaButton {
 
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = 4237673574772967581L;
-		private boolean top;
 
-		public ToggleTriangleAreaButton(String label, boolean top) {
-			super(label);
-
-			this.top = top;
+		public ToggleDirectedButton() {
+			super("Directed");
 		}
 
-		@Override
-		protected int[] getXPoints() {
-			return new int[] { 0, top ? getSize().width : 0, getSize().width };
+		protected int[] getTriangleXPoints() {
+			return new int[] { 0, getSize().width, getSize().width };
 		}
 
+		protected int[] getTriangleYPoints() {
+			return new int[] { 0, 0, getSize().height };
+		}
+		
+		protected void paintComponent(Graphics g) {
+			Color gColor = new Color(100, 200, 100);
+			
+			if (this.getModel().isArmed()){
+				gColor = gColor.darker();
+			}else if (getModel().isRollover()){
+				gColor = gColor.brighter();
+			}
+			super.paintComponent(g);
+			if (!isSelected()){
+				int x[] = getTriangleXPoints();
+				int y[] = getTriangleYPoints();
+				g.setColor(gColor);
+				g.fillPolygon(x, y, x.length);
+			}
+		}
+		
 		@Override
-		protected int[] getYPoints() {
-			return new int[] { 0, top ? 0 : getSize().height, getSize().height };
+		public String getText() {
+			return isSelected() ? "Directed" : "Undirected";
 		}
 
 	}
 
-	public void setButtons(boolean rowNames, boolean columnNames, Boolean topHalf, Boolean bottomHalf) {
-		if (topHalf != null)
-			topRightButton.setSelected(topHalf);
-		if (bottomHalf != null)
-			bottomLeftButton.setSelected(bottomHalf);
-		
+	public void setButtons(boolean rowNames, boolean columnNames, boolean undirected) {
+		directedButton.setSelected(!undirected);
 		rowNamesButton.setSelected(rowNames);
 		columnNamesButton.setSelected(columnNames);
 	}
@@ -219,8 +224,7 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 		mid = Math.max(mid, 150);
 		
 		int x = (width / 2) - (mid / 2);
-		topRightButton.setBounds(x + fontSize, fontSize, mid - fontSize, mid - fontSize);
-		bottomLeftButton.setBounds(x + fontSize, fontSize, mid - fontSize, mid - fontSize);
+		directedButton.setBounds(x + fontSize, fontSize, mid - fontSize, mid - fontSize);
 		rowNamesButton.setBounds(x, fontSize, fontSize, mid - fontSize);
 		columnNamesButton.setBounds(x + fontSize, 0, mid - fontSize, fontSize);
 	}
@@ -240,6 +244,14 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 	@Override
 	public void componentHidden(ComponentEvent e) {
 		// TODO Auto-generated method stub
+		
+	}
+	public static void main(String[] args){
+		MatrixTriangleSelector sel = new MatrixTriangleSelector(true, true, false);
+		JFrame f = new JFrame();
+		f.add(sel);
+		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		f.setVisible(true);
 		
 	}
 

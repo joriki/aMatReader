@@ -202,7 +202,7 @@ public class MatrixImportDialog extends JDialog {
 
 	private void initComponents() {
 		addRow("Network: ", getNetworkComboBox());
-		addRow("Column name: ", getColumnNameEntry());
+		addRow("New column name: ", getColumnNameEntry());
 		addRow("Delimiter: ", getDelimiterComboBox());
 		addRow("Interaction type: ", getInteractionEntry());
 		addRow("", getIgnoreZerosCheckBox());

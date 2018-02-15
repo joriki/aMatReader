@@ -1,7 +1,7 @@
 import requests  # http://docs.python-requests.org/en/master/api/
 
-from CyRESTInstance import CyRESTInstance
-from CyFailedCIError import CyFailedCIError
+from .CyRESTInstance import CyRESTInstance
+from .CyFailedCIError import CyFailedCIError
 
 
 class CyCaller:

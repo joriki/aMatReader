@@ -1,8 +1,8 @@
-from AMatReader import AMatReader
-from CyRESTInstance import CyRESTInstance
-from TestConfig import BASE_URL, IMPOSSIBLE_URL
-from Core import Core
-from CyFailedCIError import CyFailedCIError
+from pyCyAMatReader import AMatReader, CyRESTInstance, Core, CyFailedCIError
+
+BASE_URL = "http://127.0.0.1"  # at UCSD
+IMPOSSIBLE_URL = "http://impossible"
+
 from requests.status_codes import codes
 
 """ Built from http://pyunit.sourceforge.net/pyunit.html """
@@ -19,7 +19,7 @@ _core = Core(CyRESTInstance(base_url=BASE_URL))  # assumes Cytoscape answers at 
 import os
 path = os.path.realpath(__file__)
 path = os.path.dirname(path)
-path = os.path.dirname(path)
+#path = os.path.dirname(path)
 SAMPLE_DIR = os.path.join(path, 'samples')
 SAMPLE_FILE = os.path.join(SAMPLE_DIR, "sample.mat")
 SAMPLE_NO_HEADER_ROW = os.path.join(SAMPLE_DIR, "sampleNoHeaderRow.mat")
@@ -57,7 +57,7 @@ class AMatReaderTestCase(unittest.TestCase):
             assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:2" \
                    and error["status"] == 400 \
                    and error["message"] is not None \
-                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
+                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFailedError: " + str(e)
         else:
             assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 
@@ -71,7 +71,7 @@ class AMatReaderTestCase(unittest.TestCase):
             assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:1" \
                    and error["status"] == codes.NOT_FOUND \
                    and error["message"] is not None \
-                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
+                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFailedError: " + str(e)
         else:
             assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 
@@ -86,7 +86,7 @@ class AMatReaderTestCase(unittest.TestCase):
             assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:1" \
                    and error["status"] == codes.NOT_FOUND \
                    and error["message"] is not None \
-                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
+                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFailedError: " + str(e)
         else:
             assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 
@@ -151,7 +151,7 @@ class AMatReaderTestCase(unittest.TestCase):
             assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:2" \
                    and error["status"] == 500 \
                    and error["message"] is not None \
-                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
+                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFailedError: " + str(e)
         else:
             assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 
@@ -166,7 +166,7 @@ class AMatReaderTestCase(unittest.TestCase):
             assert error["type"] == "urn:cytoscape:ci:aMatReader-app:v1:aMatReader:2" \
                    and error["status"] == 500 \
                    and error["message"] is not None \
-                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFaileError: " + str(e)
+                   and error["link"] is not None, "test_amatreader_no_network returned invalid CyFailedError: " + str(e)
         else:
             assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 

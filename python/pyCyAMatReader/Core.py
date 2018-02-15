@@ -1,4 +1,4 @@
-from CyCoreCaller import CyCoreCaller
+from .CyCoreCaller import CyCoreCaller
 import json
 
 

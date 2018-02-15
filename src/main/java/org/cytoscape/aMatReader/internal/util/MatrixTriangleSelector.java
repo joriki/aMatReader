@@ -200,21 +200,6 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 
 	}
 
-	// Test routine.
-	public static void main(String[] args) {
-		MatrixTriangleSelector comp = new MatrixTriangleSelector(true, true, MatrixSymmetry.ASYMMETRIC);
-
-		// Create a frame in which to show the button.
-		JFrame frame = new JFrame();
-		frame.getContentPane().setLayout(new GridLayout());
-		frame.getContentPane().add(new JLabel("Highlight the areas of the matrix to import"), 0, 0);
-		frame.getContentPane().add(comp, 0, 1);
-		frame.setSize(400, 300);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setVisible(true);
-
-	}
-
 	public void setButtons(boolean rowNames, boolean columnNames, Boolean topHalf, Boolean bottomHalf) {
 		if (topHalf != null)
 			topRightButton.setSelected(topHalf);

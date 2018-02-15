@@ -1,17 +1,8 @@
 import json, requests
 import tempfile
-from CyCaller import CyCaller
-from CyRESTInstance import CyRESTInstance
+from .CyCaller import CyCaller
+from .CyRESTInstance import CyRESTInstance
 import numpy as np
-
-BASE_DATA = {
-  "delimiter": "TAB",
-  "ignoreZeros": True,
-  "symmetry": "ASYMMETRIC",
-  "interactionName": "interacts with",
-  "rowNames": True,
-  "columnNames": True
-}
 
 class AMatReader:
 	""" Cover functions for AMatReader functions """
@@ -56,6 +47,3 @@ class AMatReader:
 		#return self._cy_caller._execute("DELETE", "/v1/networks/" + str(suid))
 		return requests.request("DELETE",
 								  self._cy_caller.cy_rest_instance.base_url + ":" + str(self._cy_caller.cy_rest_instance.port) + "/v1/networks/" + str(suid))
-
-if __name__ == '__main__':
-	import_numpy()

@@ -10,10 +10,6 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -281,27 +277,6 @@ public class MatrixImportDialog extends JDialog {
 
 	public String getNetworkName() {
 		return (String) getNetworkComboBox().getSelectedItem();
-	}
-
-	public static void main(String[] args) {
-		MatrixImportDialog d = new MatrixImportDialog(null);
-
-		try {
-			File f = new File("/Users/bsettle/git/aMatReader/samples/sampleNoHeaders.mat");
-			InputStream is = new FileInputStream(f);
-			ResettableBufferedReader reader = new ResettableBufferedReader(is);
-			MatrixParameterPrediction p = MatrixParser.predictParameters(reader);
-			d.updateOptions(f.getName(), p);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		d.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-		d.pack();
-
-		d.setVisible(true);
-		AMatReaderParameters params = d.getParameters();
-		System.out.println(params.ignoreZeros + " " + params.columnNames + " " + params.rowNames);
 	}
 
 	public CyNetwork getNetwork() {

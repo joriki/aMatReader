@@ -1,10 +1,7 @@
 package org.cytoscape.aMatReader.internal.util;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -211,27 +208,4 @@ public class MatrixParser {
 			}
 	}
 
-	public static void main(String[] args) throws IOException {
-		// File f = new File("/Users/bsettle/Desktop/adjs/simval_orig.adj");
-		File f = new File("/Users/bsettle/git/aMatReader/samples/sampleNoHeaders.mat");
-
-		InputStream is = new FileInputStream(f);
-
-		ResettableBufferedReader reader = new ResettableBufferedReader(is);
-		MatrixParameterPrediction p = MatrixParser.predictParameters(reader);
-		MatrixParser parser = new MatrixParser(reader, p.delimiter, false, p.hasRowNames, p.hasColumnNames,
-				MatrixSymmetry.ASYMMETRIC);
-		for (int row = 0; row < parser.getRowCount(); row++) {
-			Map<Integer, Double> map = parser.edgeMap.get(row);
-			for (int col : map.keySet()) {
-				System.out.println(row + " " + col);
-				String source = parser.getRowName(row);
-				String column = parser.getColumnName(col);
-				System.out.println(source + " " + column);
-
-			}
-		}
-		System.out.println(parser.edgeCount());
-
-	}
 }

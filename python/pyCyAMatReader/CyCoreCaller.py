@@ -1,8 +1,8 @@
 import requests  # http://docs.python-requests.org/en/master/api/
 from requests.status_codes import codes
 
-from CyRESTInstance import CyRESTInstance
-from CyFailedReqError import CyFailedReqError
+from .CyRESTInstance import CyRESTInstance
+from .CyFailedReqError import CyFailedReqError
 
 
 class CyCoreCaller:

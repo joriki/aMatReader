@@ -118,7 +118,7 @@ class AMatReaderTestCase(unittest.TestCase):
         assert result['updatedEdges'] == 0, 'updatedEdges value should be 0, not %s' % result
 
         suid = result['suid']
-        result = _amatreader.extend_matrix(suid, data)
+        result = _amatreader.import_matrix(data, suid=suid)
         assert result['newEdges'] == 0, 'newEdges value should be 0, not %s' % result
         assert result['updatedEdges'] == 10, 'updatedEdges value should be 10, not %s' % result
 
@@ -134,7 +134,7 @@ class AMatReaderTestCase(unittest.TestCase):
 
         suid = result['suid']
         data['files'] = [SAMPLE_FILE, SAMPLE_FILE, SAMPLE_FILE]
-        result = _amatreader.extend_matrix(suid, data)
+        result = _amatreader.import_matrix(data, suid=suid)
         assert result['newEdges'] == 0, 'newEdges value should be 0, not %s' % result
         assert result['updatedEdges'] == 30, 'updatedEdges value should be 10, not %s' % result
 

@@ -11,16 +11,14 @@ class AMatReader:
 		""" Constructor remembers CyREST location """
 		self._cy_caller = CyCaller(cy_rest_instance)
 
-	def import_matrix(self, data):
+	def import_matrix(self, data, suid=None):
 		""" Import adjacency matrix file into Cytoscape """
-		return self._cy_caller.execute_post("/aMatReader/v1/import", json.dumps(data))
+		if suid is None:
+			return self._cy_caller.execute_post("/aMatReader/v1/import", json.dumps(data))
+		else:
+			return self._cy_caller.execute_post("/aMatReader/v1/extend/" + str(suid), json.dumps(data))
 
-	def extend_matrix(self, suid, data):
-		""" Extend existing Cytoscape network with adjacency matrix file as new edge attribute """
-		url = "/aMatReader/v1/extend/" + str(suid)
-		return self._cy_caller.execute_post(url, json.dumps(data))
-
-	def import_numpy(self, matrix, data, names=[]):
+	def import_numpy(self, matrix, data, suid=None, names=[]):
 		""" Save matrix to temporary file and import into Cytoscape as adjacency matrix """
 		n, path = tempfile.mkstemp()
 		args = {'delimiter':'\t', 'fmt':'%g'}
@@ -31,15 +29,15 @@ class AMatReader:
 			data['columnNames'] = True
 		np.savetxt(path, matrix, **args)
 		data['files'] = [path]
-		return self._cy_caller.execute_post("/aMatReader/v1/import", json.dumps(data))
+		return self.import_matrix(data, suid=suid)
 
 
-	def import_pandas(self, df, data):
+	def import_pandas(self, df, data, suid=None):
 		""" Save dataframe to temporary file and import into Cytoscape as adjacency matrix """
 		n, path = tempfile.mkstemp()
 		df.to_csv(path, sep='\t', index=False)
 		data['files'] = [path]
-		return self._cy_caller.execute_post("/aMatReader/v1/import", json.dumps(data))
+		return self.import_matrix(data, suid=suid)
 
 
 	def remove_network(self, suid):

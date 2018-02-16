@@ -1,0 +1,13 @@
+setup.py
+pyCyAMatReader/AMatReader.py
+pyCyAMatReader/Core.py
+pyCyAMatReader/CyCaller.py
+pyCyAMatReader/CyCoreCaller.py
+pyCyAMatReader/CyFailedCIError.py
+pyCyAMatReader/CyFailedReqError.py
+pyCyAMatReader/CyRESTInstance.py
+pyCyAMatReader/__init__.py
+pyCyAMatReader.egg-info/PKG-INFO
+pyCyAMatReader.egg-info/SOURCES.txt
+pyCyAMatReader.egg-info/dependency_links.txt
+pyCyAMatReader.egg-info/top_level.txt

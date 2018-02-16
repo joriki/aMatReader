@@ -1,16 +1,17 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	
+
 	<properties>
 		<bundle.symbolicName>aMatReader</bundle.symbolicName>
-		<bundle.namespace>edu.ucsf.rbvi.aMatReader.internal</bundle.namespace>
-		<cytoscape.api.version>3.2.0</cytoscape.api.version>
-		
+		<bundle.namespace>org.cytoscape.aMatReader.internal</bundle.namespace>
+		<cytoscape.api.version>3.6.0</cytoscape.api.version>
+
 		<maven-bundle-plugin.version>2.3.4</maven-bundle-plugin.version>
 		<osgi.api.version>4.2.0</osgi.api.version>
 	</properties>
 
-	<groupId>edu.ucsf.rbvi</groupId>
+	<groupId>org.cytoscape</groupId>
 	<artifactId>aMatReader</artifactId>
 	<packaging>bundle</packaging>
 	<name>${bundle.symbolicName}</name>
@@ -40,9 +41,10 @@
 						<Export-Package>!${bundle.namespace}.*</Export-Package>
 						<Private-Package>${bundle.namespace}.*</Private-Package>
 						<Bundle-Activator>${bundle.namespace}.CyActivator</Bundle-Activator>
-						<Embed-Dependency>*;scope=!provided</Embed-Dependency>
+						<Embed-Dependency>*;scope=!provided|test;groupId=!org.cytoscape</Embed-Dependency>
 						<Embed-Transitive>true</Embed-Transitive>
 						<Import-Package>*;resolution:=optional</Import-Package>
+						<Cytoscape-App-Dependencies>cyREST;3.5.0</Cytoscape-App-Dependencies>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -122,6 +124,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.cytoscape</groupId>
+			<artifactId>swing-app-api</artifactId>
+			<version>${cytoscape.api.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.cytoscape</groupId>
 			<artifactId>service-api</artifactId>
 			<version>${cytoscape.api.version}</version>
 			<scope>provided</scope>
@@ -132,12 +140,28 @@
 			<version>1.5.2</version>
 			<scope>provided</scope>
 		</dependency>
+
 		<dependency>
-			<groupId>org.osgi</groupId>
-			<artifactId>org.osgi.core</artifactId>
-			<version>${osgi.api.version}</version>
+			<groupId>org.cytoscape</groupId>
+			<artifactId>ci-api</artifactId>
+			<version>${cytoscape.api.version}</version>
+			<type>bundle</type>
+		</dependency>
+		
+		<dependency>
+			<groupId>io.swagger</groupId>
+			<artifactId>swagger-annotations</artifactId>
+			<version>1.5.7</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>javax.ws.rs-api</artifactId>
+			<version>2.0</version>
+			<scope>provided</scope>
+		</dependency>
+		
+
 	</dependencies>
 
 </project>

@@ -221,19 +221,19 @@ class AMatReaderTestCase(unittest.TestCase):
 
     def test_amatreader_column_prefix(self):
         data = BASE_DATA.copy()
-        data['files'] = [os.path.join(SAMPLE_DIR, 'simval_orig.adj')]
+        data['files'] = [os.path.join(SAMPLE_DIR, 'sampleColumnPrefixes.mat')]
         data['removeColumnPrefix'] = True
         result = _amatreader.import_matrix(data)
-        assert result['newEdges'] == 19368, "Should be 19368 new edges from file"
+        assert result['newEdges'] == 9, "Should be 9 new edges from file"
         _amatreader.remove_network(result['suid'])
 
     def test_amatreader_column_prefix_with_zeros(self):
         data = BASE_DATA.copy()
-        data['files'] = [os.path.join(SAMPLE_DIR, 'simval_orig.adj')]
+        data['files'] = [os.path.join(SAMPLE_DIR, 'sampleColumnPrefixes.mat')]
         data['removeColumnPrefix'] = True
         data['ignoreZeros'] = False
         result = _amatreader.import_matrix(data)
-        assert result['newEdges'] == 19460, "Should be 19460 new edges from file"
+        assert result['newEdges'] == 10, "Should be 10 new edges from file"
         _amatreader.remove_network(result['suid'])
 
 

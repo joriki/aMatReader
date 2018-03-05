@@ -1,6 +1,5 @@
 package org.cytoscape.aMatReader.internal.tasks;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -13,7 +12,6 @@ import org.cytoscape.aMatReader.internal.rest.AMatReaderResult;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
 import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
 import org.cytoscape.aMatReader.internal.util.MatrixParser;
-import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParseException;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyEdge;
@@ -43,7 +41,7 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	private final String SOURCE_NAME = "SourceNode";
 	private final String TARGET_NAME = "TargetNode";
 
-	@Tunable(description = "Delimiter", gravity = 11)
+	@Tunable(description = "Delimiter", gravity = 11, longDescription = "Character used to separate values within rows")
 	public Delimiter delimiter = Delimiter.TAB;
 
 	@Tunable(description = "Treat matrix as undirected", gravity = 12, longDescription = "The matrix of an undirected graph must be symmetric, and only the top triangle of the matrix is imported. Directed graphs make use of the entire matrix")
@@ -54,19 +52,19 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	public boolean ignoreZeros = true;
 
 	@Tunable(description = "Interaction type", groups = {
-			"Advanced Options" }, params = "displayState=collapsed", gravity = 14)
+			"Advanced Options" }, params = "displayState=collapsed", gravity = 14, longDescription = "Edge interaction type given to edges created by the matrix")
 	public String interactionName = "interacts with";
 
 	@Tunable(description = "Row names", groups = {
-			"Advanced Options" }, params = "displayState=collapsed", gravity = 15)
+			"Advanced Options" }, params = "displayState=collapsed", gravity = 15, longDescription = "True if first column specifies node names. False to use the column names (in a square matrix) or generate node names (if columnNames==False)")
 	public boolean rowNames;
 
 	@Tunable(description = "Column names", groups = {
-			"Advanced Options" }, params = "displayState=collapsed", gravity = 16)
+			"Advanced Options" }, params = "displayState=collapsed", gravity = 16, longDescription = "True if first row specifies node names. False to use the row names (in a square matrix) or generate node names (if rowNames==False)")
 	public boolean columnNames;
 
 	@Tunable(description = "Remove column prefix", groups = {
-			"Advanced Options" }, params = "displayState=collapsed", gravity = 17)
+			"Advanced Options" }, params = "displayState=collapsed", gravity = 17, longDescription = "Column names contain prefixes (common in R and MATLAB files) that should be removed upon import.")
 	public boolean removeColumnPrefix;
 
 	@ProvidesTitle
@@ -112,13 +110,13 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 	}
 
 	@Override
-	public void run(TaskMonitor taskMonitor) throws NullPointerException, IOException, MatrixParseException {
+	public void run(TaskMonitor taskMonitor) throws Exception {
 
 		if (delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized");
 		}
-		
 		final MatrixParser parser = new MatrixParser(reader, delimiter, ignoreZeros, rowNames, columnNames, undirected);
+		reader.close();
 
 		if (removeColumnPrefix)
 			parser.removeColumnPrefix();
@@ -146,26 +144,28 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 			String name = parser.getColumnName(i);
 			createNode(name, TARGET_NAME);
 		}
-
 		int newEdgeCount = 0, updatedEdgeCount = 0;
-		Map<Integer, Map<Integer, Double>> edgeMap = parser.getEdges();
-		for (int src : edgeMap.keySet()) {
-			Map<Integer, Double> tgtMap = edgeMap.get(src);
-			String srcName = parser.getRowName(src);
-			for (int tgt : tgtMap.keySet()) {
-				String tgtName = parser.getColumnName(tgt);
-				Double value = tgtMap.get(tgt);
-				boolean added = createEdge(srcName, tgtName, value);
+		try {
 
-				if (added)
-					newEdgeCount++;
-				else {
-					updatedEdgeCount++;
+			Map<Integer, Map<Integer, Double>> edgeMap = parser.getEdges();
+			for (int src : edgeMap.keySet()) {
+				Map<Integer, Double> tgtMap = edgeMap.get(src);
+				String srcName = parser.getRowName(src);
+				for (int tgt : tgtMap.keySet()) {
+					String tgtName = parser.getColumnName(tgt);
+					Double value = tgtMap.get(tgt);
+					boolean added = createEdge(srcName, tgtName, value);
+
+					if (added)
+						newEdgeCount++;
+					else {
+						updatedEdgeCount++;
+					}
 				}
 			}
+		} catch (ArrayIndexOutOfBoundsException e) {
+			throw new Exception("Unable to import matrix. Check your parameters and try again");
 		}
-
-		reader.close();
 
 		rm.eventHelper.flushPayloadEvents();
 
@@ -302,7 +302,6 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 
 	@Override
 	public CyNetwork[] getNetworks() {
-		// TODO Auto-generated method stub
 		return new CyNetwork[] { network };
 	}
 }

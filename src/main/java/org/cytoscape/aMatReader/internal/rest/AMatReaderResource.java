@@ -1,6 +1,5 @@
 package org.cytoscape.aMatReader.internal.rest;
 
-
 import java.util.ArrayList;
 
 import javax.ws.rs.Consumes;
@@ -31,14 +30,16 @@ public interface AMatReaderResource {
 	public static final String INVALID_PARAMETERS_CODE = "2";
 	public static final String TASK_EXECUTION_ERROR_CODE = "3";
 
-	static final String GENERIC_SWAGGER_NOTES = "Import an adjacency matrix to a Cytoscape network" + '\n';
+	static final String GENERIC_SWAGGER_NOTES = "Adjacency matrix files usually specify the node names in the first column and/or first row " + '\n'
+			+ "and all values are delimited by a tab, space, comma, or pipe '|'. This app only allows for integer/floating point values for easy parsing.";
+	static final String IMPORT_NOTES = "Import a adjacency matrix file(s) as a new Cytoscape network. " + '\n';
+	static final String EXTEND_NOTES = "Use adjacency matrix file(s) to add edge attributes to an existing Cytoscape network. " + '\n';
 
 	static final Logger logger = LoggerFactory.getLogger(AMatReaderResource.class);
-
 	final static String resourceErrorRoot = "urn:cytoscape:ci:aMatReader-app:v1";
 
 	@ApiModel(value = "aMatReader Response", description = "aMatReader new/updated nodes in Cytoscape", parent = CIResponse.class)
-	
+
 	public static class AMatReaderResponse extends CIResponse<AMatReaderResult> {
 		public AMatReaderResponse(Long suid, int newEdges, int updatedEdges) {
 			this.data = new AMatReaderResult(suid, newEdges, updatedEdges);
@@ -56,19 +57,18 @@ public interface AMatReaderResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("import")
-	@ApiOperation(value = "Import a network from adjacency matrix file(s)", notes = GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
+	@ApiOperation(value = "Import a new network from adjacency matrix file(s)", notes = IMPORT_NOTES + GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
 	@ApiResponses(value = {
 			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })
 	public abstract Response aMatReader(
 			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters);
 
-	
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("extend/{networkSUID}")
-	@ApiOperation(value = "Import a network from adjacency matrix file(s)", notes = GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
+	@ApiOperation(value = "Add an edge attribute column to an existing network from adjacency matrix file(s)", notes = EXTEND_NOTES + GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
 	@ApiResponses(value = {
 			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })

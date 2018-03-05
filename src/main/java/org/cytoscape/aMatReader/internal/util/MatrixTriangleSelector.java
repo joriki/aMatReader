@@ -209,8 +209,9 @@ public class MatrixTriangleSelector extends JPanel implements ComponentListener{
 
 	}
 
-	public void setButtons(boolean rowNames, boolean columnNames, boolean undirected) {
-		directedButton.setSelected(!undirected);
+	public void setButtons(boolean rowNames, boolean columnNames, Boolean undirected) {
+		if (undirected != null)
+			directedButton.setSelected(!undirected);
 		rowNamesButton.setSelected(rowNames);
 		columnNamesButton.setSelected(columnNames);
 	}

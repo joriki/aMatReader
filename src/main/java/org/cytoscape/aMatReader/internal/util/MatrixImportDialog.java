@@ -30,6 +30,7 @@ public class MatrixImportDialog extends JDialog {
 	/**
 	 * 
 	 */
+
 	private static final long serialVersionUID = 1L;
 	private Vector<String> networkNames = new Vector<String>();
 	private MatrixTriangleSelector matrixButtons;
@@ -289,20 +290,23 @@ public class MatrixImportDialog extends JDialog {
 
 	}
 
-	public void updateOptions(String name, MatrixParameterPrediction prediction) {
-		getMatrixButtons().setButtons(prediction.hasRowNames, prediction.hasColumnNames, false);
+	public void updateOptions(String name, MatrixParameterPrediction prediction, boolean newCollection) {
+		getMatrixButtons().setButtons(prediction.hasRowNames, prediction.hasColumnNames, null);
 		getDelimiterComboBox().setSelectedItem(prediction.delimiter);
 		getColumnNameEntry().setText(name);
 		boolean prefixed = !prediction.columnPrefix.isEmpty();
 		JCheckBox cb = getRemoveColumnPrefixCheckBox();
 		cb.setVisible(prefixed);
+		cb.setSelected(prefixed);
 		if (prefixed) {
-			getRemoveColumnPrefixCheckBox().setText("Remove column prefix: '" + prediction.columnPrefix + "'");
+			cb.setText("Remove column prefix: '" + prediction.columnPrefix + "'");
 		} else {
-			getRemoveColumnPrefixCheckBox().setSelected(false);
+			cb.setSelected(false);
 		}
 		resetNetworkComboBox(false);
-
+		if (newCollection) {
+			getNetworkComboBox().setSelectedItem(name);
+		}
 	}
 
 }

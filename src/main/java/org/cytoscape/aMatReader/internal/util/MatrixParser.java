@@ -12,20 +12,21 @@ public class MatrixParser {
 	private PrefixedVector columnNames;
 	private final HashMap<Integer, Map<Integer, Double>> edgeMap;
 	private final boolean ignoreZeros;
-	
-	public class MatrixParseException extends Exception{
+
+	public class MatrixParseException extends Exception {
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = 2747259808393035815L;
 
-		public MatrixParseException(String message){
+		public MatrixParseException(String message) {
 			super(message);
 		}
 	}
 
 	public MatrixParser(final ResettableBufferedReader reader, final Delimiter delim, final boolean ignoreZeros,
-			final boolean hasRowNames, boolean hasColumnNames, boolean undirected) throws IOException, MatrixParseException {
+			final boolean hasRowNames, boolean hasColumnNames, boolean undirected)
+			throws IOException, MatrixParseException {
 		this.ignoreZeros = ignoreZeros;
 		this.rowNames = new Vector<String>();
 		this.columnNames = new PrefixedVector();
@@ -86,40 +87,44 @@ public class MatrixParser {
 
 	public void importFile(final ResettableBufferedReader reader, Delimiter delim, final boolean hasRowNames,
 			final boolean hasColumnNames, boolean undirected) throws IOException, MatrixParseException {
-			String[] row;
-			int rowNumber = 0;
-			boolean pastColumnNames = !hasColumnNames;
-			while ((row = readRow(reader, delim)) != null) {
-				if (row.length == 0)
-					continue;
-				if (rowNumber == 0 && !pastColumnNames) {
-					readColumnNames(row, hasRowNames ? 1 : 0);
-					pastColumnNames = true;
-					continue;
-				} else {
-					int start = undirected ? rowNumber + 1 : 0;
-					int end = row.length;
+		String[] row;
+		int rowNumber = 0;
+		boolean pastColumnNames = !hasColumnNames;
 
-					if (hasRowNames) {
-						rowNames.add(row[0]);
-						if (hasColumnNames && undirected && !row[0].equals(columnNames.get(rowNumber))){
-							String message = "Node #" + rowNumber + " row " + row[0] + " != column " + columnNames.get(rowNumber);
-							throw new MatrixParseException("Matrix can only be imported as undirected if it is symmetric. " + message);
-						}
-						row = Arrays.copyOfRange(row, 1, row.length);
+		while ((row = readRow(reader, delim)) != null) {
+			if (row.length == 0)
+				continue;
+			if (rowNumber == 0 && !pastColumnNames) {
+				readColumnNames(row, hasRowNames ? 1 : 0);
+				pastColumnNames = true;
+				continue;
+			} else {
+				int start = undirected ? rowNumber + 1 : 0;
+				int end = row.length;
+
+				if (hasRowNames) {
+					rowNames.add(row[0]);
+
+					if (hasColumnNames && undirected && !columnNames.get(rowNumber).endsWith(row[0])) {
+						String message = "Row #" + rowNumber + " node " + row[0] + " != column "
+								+ columnNames.get(rowNumber);
+						throw new MatrixParseException(
+								"Matrix can only be imported as undirected if it is symmetric. " + message);
 					}
-					Map<Integer, Double> tgtMap = parseRow(row, start, end);
-
-					edgeMap.put(rowNumber, tgtMap);
+					row = Arrays.copyOfRange(row, 1, row.length);
 				}
-				rowNumber++;
+
+				Map<Integer, Double> tgtMap = parseRow(row, start, end);
+
+				edgeMap.put(rowNumber, tgtMap);
 			}
+			rowNumber++;
+		}
 
-			if (hasRowNames && !hasColumnNames)
-				columnNames = new PrefixedVector(rowNames);
-			else if (hasColumnNames && !hasRowNames)
-				rowNames = columnNames;
-
+		if (hasRowNames && !hasColumnNames)
+			columnNames = new PrefixedVector(rowNames);
+		else if (hasColumnNames && !hasRowNames)
+			rowNames = columnNames;
 	}
 
 	String[] readRow(BufferedReader input, Delimiter delimiter) throws IOException {

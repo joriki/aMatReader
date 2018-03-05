@@ -258,7 +258,7 @@ class AMatReaderTestCase(unittest.TestCase):
         result = _amatreader.import_pandas(df, data)
         assert result['newEdges'] == 25, "Should be 25 newEdges not " + result['newEdges']
         _amatreader.remove_network(result['suid'])
-
+    
 
 def suite():
     amatreader_suite = unittest.makeSuite(AMatReaderTestCase, "test")

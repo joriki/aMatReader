@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderParameters;
@@ -24,19 +25,23 @@ import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CySubNetwork;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.work.AbstractTask;
+import org.cytoscape.work.FinishStatus;
+import org.cytoscape.work.FinishStatus.Type;
 import org.cytoscape.work.ObservableTask;
 import org.cytoscape.work.ProvidesTitle;
 import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.TaskMonitor;
+import org.cytoscape.work.TaskObserver;
 
 public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkReader, ObservableTask {
 	private static AMatReaderResponse result;
 	private static MatrixImportDialog dialog;
-	private static boolean open = false;
 
 	private static ResettableBufferedReader reader;
 	private static ArrayDeque<String> names = new ArrayDeque<String>();
 	private static HashMap<String, InputStream> inputStreamMap = new HashMap<String, InputStream>();
+	private CyNetwork network = null;
+	String networkName = "";
 
 	@ProvidesTitle
 	public String getTitle() {
@@ -80,26 +85,17 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 	}
 
 	public void doImport(ResettableBufferedReader reader) {
-		MatrixImportDialog dialog = getDialog();
+		dialog = getDialog();
 		AMatReaderParameters params = dialog.getParameters();
-		CyNetwork net = dialog.getNetwork();
-		boolean newNetwork = net == null;
-
-		net = importMatrix(net, reader, dialog.getColumnName(), params);
-
-		if (newNetwork) {
-			String name = dialog.getNetworkName();
-			// String name =
-			// resourceManager.naming.getSuggestedNetworkTitle(networkName);
-			net.getRow(net).set(CyNetwork.NAME, name);
-			CyRootNetwork root = ((CySubNetwork) net).getRootNetwork();
-			root.getRow(root).set(CyRootNetwork.NAME, name);
-		}
+		network = dialog.getNetwork();
+		networkName = dialog.getNetworkName();
+		importMatrix(reader, dialog.getColumnName(), params);
 
 	}
-	private HashMap<String, Object> buildContext(AMatReaderParameters params){
+
+	private HashMap<String, Object> buildContext(AMatReaderParameters params) {
 		HashMap<String, Object> context = new HashMap<String, Object>();
-		
+
 		context.put("delimiter", params.delimiter);
 		context.put("ignoreZeros", params.ignoreZeros);
 		context.put("interactionName", params.interactionName);
@@ -107,14 +103,14 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		context.put("undirected", params.undirected);
 		context.put("rowNames", params.rowNames);
 		context.put("columnNames", params.columnNames);
-		
+
 		return context;
 	}
 
-	private CyNetwork importMatrix(CyNetwork network, ResettableBufferedReader reader, String name,
-			AMatReaderParameters params) {
+	private void importMatrix(final ResettableBufferedReader reader, final String name,
+			final AMatReaderParameters params) {
 
-		AMatReaderTask task;
+		final AMatReaderTask task;
 		if (network != null) {
 			task = new AMatReaderTask(network, reader, name, resourceManager);
 		} else {
@@ -123,23 +119,40 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 		HashMap<String, Object> context = buildContext(params);
 		resourceManager.taskManager.setExecutionContext(context);
-		resourceManager.taskManager.execute(new TaskIterator(task));
+		TaskObserver to = new TaskObserver() {
 
-		if (network == null) {
-			if (task.getNetworks() != null && task.getNetworks().length > 0) {
-
-				CyNetwork net = task.getNetworks()[0];
-				resourceManager.netManager.addNetwork(net);
-				network = net;
-
-			} else {
-				System.out.println("No resulting network?");
+			@Override
+			public void taskFinished(ObservableTask task) {
+				
 			}
-		}
-		return network;
+
+			@Override
+			public void allFinished(FinishStatus finishStatus) {
+				if (finishStatus.getType() == Type.SUCCEEDED) {
+					CyNetwork newNetwork = task.getNetworks()[0];
+					// new network was created by import, set name
+					if (network == null && newNetwork != null) {
+						resourceManager.netManager.addNetwork(newNetwork);
+						newNetwork.getRow(newNetwork).set(CyNetwork.NAME, networkName);
+						CyRootNetwork root = ((CySubNetwork) newNetwork).getRootNetwork();
+						root.getRow(root).set(CyRootNetwork.NAME, networkName);
+					}
+
+					String name = names.poll();
+					updateDialog(name);
+				} else {
+					Exception e = finishStatus.getException();
+					JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+					reset();
+				}
+			}
+		};
+
+		resourceManager.taskManager.execute(new TaskIterator(task), to);
 	}
 
 	private void updateDialog(String name) {
+
 		if (name != null) {
 			InputStream is = inputStreamMap.get(name);
 			reader = new ResettableBufferedReader(is);
@@ -151,13 +164,10 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 				e1.printStackTrace();
 			}
 
-			dialog.updateOptions(name, prediction);
+			dialog.updateOptions(name, prediction, false);
 
 		} else {
-			open = false;
-			dialog.setVisible(false);
-			names.clear();
-			inputStreamMap.clear();
+			reset();
 		}
 	}
 
@@ -175,10 +185,8 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 				public void actionPerformed(ActionEvent e) {
 					if (e.getSource() == dialog.getOkButton()) {
 						doImport(reader);
-						updateDialog(names.poll());
 					} else {
-						dialog.setVisible(false);
-						open = false;
+						reset();
 					}
 				}
 			});
@@ -187,25 +195,33 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		return dialog;
 	}
 
+	private void reset() {
+		dialog.setVisible(false);
+		dialog = null;
+		inputStreamMap.clear();
+		names.clear();
+	}
+
 	public void showDialog() {
-		if (!open) {
-			open = true;
+		if (dialog == null)
+			return;
+		if (!dialog.isVisible()) {
 			SwingUtilities.invokeLater(new Runnable() {
 				@Override
 				public void run() {
-					String name = names.pop();
+					String name = names.poll();
 					InputStream is = inputStreamMap.get(name);
 					reader = new ResettableBufferedReader(is);
 
 					MatrixParameterPrediction prediction;
 					try {
 						prediction = MatrixParser.predictParameters(reader);
-						getDialog().updateOptions(name, prediction);
+						getDialog().updateOptions(name, prediction, true);
 					} catch (IOException e) {
 
 					}
 
-					getDialog().setVisible(true);
+					dialog.setVisible(true);
 				}
 			});
 		}
@@ -213,13 +229,10 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 	@Override
 	public void run(TaskMonitor taskMonitor) {
-		if (inputStreamMap.isEmpty()) {
-			open = false;
-			return;
+		if (dialog == null) {
+			dialog = getDialog();
+			showDialog();
 		}
-
-		showDialog();
-
 	}
 
 	@SuppressWarnings("unchecked")
@@ -230,8 +243,10 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 
 	@Override
 	public void cancel() {
-		if (dialog != null)
+		if (dialog != null) {
 			dialog.setVisible(false);
+			dialog = null;
+		}
 	}
 
 	@Override

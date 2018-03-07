@@ -1,0 +1,5 @@
+Rows,sim.Node1,sim.Node2,sim.Node3,sim.Node4
+Node2,1,NA,3,3
+Node4,NA,3,1,NA
+Node1,NA,1,4,NA
+Node3,4,3,NA,1

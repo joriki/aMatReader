@@ -26,18 +26,33 @@ public class PrefixedVector extends Vector<String> {
 			add(s);
 		}
 	}
+	
+	private void updatePrefix(String s){
+		int lastIndex = s.lastIndexOf('.');
+		if (lastIndex >= 0){
+			if (size() == 0){
+				prefix = s.substring(0, lastIndex + 1);
+			}else{
+				if (s.startsWith(prefix))
+					return;
+				else{
+					while (lastIndex > 0){
+						lastIndex = s.lastIndexOf('.', lastIndex);
+						prefix = s.substring(0, lastIndex + 1);
+						if (s.startsWith(prefix))
+							break;
+					}
+				}
+			}
+		}else{
+			prefix = "";
+		}
+	}
 
 	public boolean add(String s) {
 		if (s.isEmpty())
 			return false;
-		if (size() == 0)
-			prefix = s;
-		else {
-			int i = 0;
-			for (; i < s.length() && i < prefix.length() && prefix.charAt(i) == s.charAt(i); i++)
-				;
-			prefix = prefix.substring(0, i);
-		}
+		updatePrefix(s);
 		return super.add(s);
 	}
 

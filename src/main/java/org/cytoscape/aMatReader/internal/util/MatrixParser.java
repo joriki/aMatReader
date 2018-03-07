@@ -1,6 +1,7 @@
 package org.cytoscape.aMatReader.internal.util;
 
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,9 +10,9 @@ import java.util.Vector;
 
 public class MatrixParser {
 	private Vector<String> rowNames;
-	private PrefixedVector columnNames;
+	private Vector<String> columnNames;
 	private final HashMap<Integer, Map<Integer, Double>> edgeMap;
-	private final boolean ignoreZeros;
+	private final MatrixParameters parameters;
 
 	public class MatrixParseException extends Exception {
 		/**
@@ -24,14 +25,13 @@ public class MatrixParser {
 		}
 	}
 
-	public MatrixParser(final ResettableBufferedReader reader, final Delimiter delim, final boolean ignoreZeros,
-			final boolean hasRowNames, boolean hasColumnNames, boolean undirected)
+	public MatrixParser(final ResettableBufferedReader reader, MatrixParameters params)
 			throws IOException, MatrixParseException {
-		this.ignoreZeros = ignoreZeros;
+		this.parameters = params;
 		this.rowNames = new Vector<String>();
 		this.columnNames = new PrefixedVector();
 		edgeMap = new HashMap<Integer, Map<Integer, Double>>();
-		importFile(reader, delim, hasRowNames, hasColumnNames, undirected);
+		buildNetwork(reader);
 	}
 
 	public int edgeCount() {
@@ -67,67 +67,75 @@ public class MatrixParser {
 		return edgeMap;
 	}
 
-	public void readColumnNames(String[] names, int start) {
-		for (; start < names.length; start++) {
-			if (!names[start].isEmpty())
-				columnNames.add(names[start]);
-		}
-	}
-
-	public Map<Integer, Double> parseRow(String[] row, int startIndex, int endIndex) {
-		Map<Integer, Double> tgtMap = new HashMap<Integer, Double>();
-		for (; startIndex < row.length && startIndex < endIndex; startIndex++) {
-			Double value = getValue(row[startIndex]);
-			if (value != null && !(ignoreZeros && value == 0)) {
-				tgtMap.put(startIndex, value);
+	private void readColumnNames(String[] names) {
+		for (int start = parameters.hasRowNames ? 1 : 0; start < names.length; start++) {
+			if (!names[start].isEmpty()) {
+				String name = names[start];
+				if (name.startsWith(parameters.columnPrefix)) {
+					name = name.substring(parameters.columnPrefix.length(), name.length());
+				}
+				columnNames.add(name);
 			}
 		}
-		return tgtMap;
 	}
 
-	public void importFile(final ResettableBufferedReader reader, Delimiter delim, final boolean hasRowNames,
-			final boolean hasColumnNames, boolean undirected) throws IOException, MatrixParseException {
+	private void parseRow(int rowNumber, String[] row, boolean undirected) {
+		int start = undirected ? rowNumber + 1 : 0;
+		HashMap<Integer, Double> tgtMap = new HashMap<Integer, Double>();
+		for (; start < row.length; start++) {
+			Double value = getValue(row[start]);
+			if (value != null && !(parameters.ignoreZeros && value == 0)) {
+				tgtMap.put(start, value);
+			}
+		}
+		edgeMap.put(rowNumber, tgtMap);
+	}
+
+	private boolean buildNetwork(final ResettableBufferedReader reader) throws IOException, MatrixParseException {
 		String[] row;
 		int rowNumber = 0;
-		boolean pastColumnNames = !hasColumnNames;
+		boolean pastColumnLine = !parameters.hasColumnNames;
+		while ((row = readRow(reader, parameters.delimiter)) != null) {
 
-		while ((row = readRow(reader, delim)) != null) {
-			if (row.length == 0)
+			// comment line or empty line
+			if (row.length == 0) {
 				continue;
-			if (rowNumber == 0 && !pastColumnNames) {
-				readColumnNames(row, hasRowNames ? 1 : 0);
-				pastColumnNames = true;
-				continue;
-			} else {
-				int start = undirected ? rowNumber + 1 : 0;
-				int end = row.length;
-
-				if (hasRowNames) {
-					rowNames.add(row[0]);
-
-					if (hasColumnNames && undirected && !columnNames.get(rowNumber).endsWith(row[0])) {
-						String message = "Row #" + rowNumber + " node " + row[0] + " != column "
-								+ columnNames.get(rowNumber);
-						throw new MatrixParseException(
-								"Matrix can only be imported as undirected if it is symmetric. " + message);
-					}
-					row = Arrays.copyOfRange(row, 1, row.length);
-				}
-
-				Map<Integer, Double> tgtMap = parseRow(row, start, end);
-
-				edgeMap.put(rowNumber, tgtMap);
 			}
+			// column names line
+			if (!pastColumnLine) {
+				readColumnNames(row);
+				if (!parameters.hasRowNames) {
+					rowNames = columnNames;
+				}
+				pastColumnLine = true;
+				continue;
+			}
+			String name = "";
+			if (parameters.hasRowNames) {
+				name = row[0];
+				rowNames.add(name);
+				row = Arrays.copyOfRange(row, 1, row.length);
+				if (!parameters.hasColumnNames) {
+					if (columnNames.isEmpty()) {
+						for (int i = 1; i <= row.length; i++) {
+							columnNames.add("Node " + i);
+						}
+					}
+					columnNames.set(rowNumber, name);
+				}
+			}
+
+			if (name.isEmpty()) {
+				name = getColumnName(rowNumber);
+			}
+
+			parseRow(rowNumber, row, parameters.undirected);
 			rowNumber++;
 		}
-
-		if (hasRowNames && !hasColumnNames)
-			columnNames = new PrefixedVector(rowNames);
-		else if (hasColumnNames && !hasRowNames)
-			rowNames = columnNames;
+		return true;
 	}
 
-	String[] readRow(BufferedReader input, Delimiter delimiter) throws IOException {
+	private String[] readRow(ResettableBufferedReader input, Delimiter delimiter) throws IOException {
 		String row = input.readLine();
 		if (row == null)
 			return null;
@@ -141,7 +149,7 @@ public class MatrixParser {
 		return columns;
 	}
 
-	static Double getValue(String value) {
+	private static Double getValue(String value) {
 		Double v = null;
 		if (value == null)
 			return null;
@@ -156,21 +164,38 @@ public class MatrixParser {
 		return v;
 	}
 
-	public static class MatrixParameterPrediction {
+	public static class MatrixParameters {
+		public MatrixParameters(Delimiter delimiter, boolean ignoreZeros, boolean hasRowNames, boolean hasColumnNames,
+				boolean undirected) {
+			this.delimiter = delimiter;
+			this.hasRowNames = hasRowNames;
+			this.hasColumnNames = hasColumnNames;
+			this.ignoreZeros = ignoreZeros;
+			this.undirected = undirected;
+		}
+
+		public MatrixParameters() {
+		};
+
 		public Delimiter delimiter = Delimiter.TAB;
 		public boolean hasRowNames = false, hasColumnNames = false;
 		public String columnPrefix = "";
+		public boolean ignoreZeros = true;
+		public boolean undirected = false;
 	}
 
-	public static MatrixParameterPrediction predictParameters(ResettableBufferedReader reader) throws IOException {
-		MatrixParameterPrediction prediction = new MatrixParameterPrediction();
+	public static MatrixParameters predictParameters(ResettableBufferedReader reader) throws IOException {
+		MatrixParameters prediction = new MatrixParameters();
 		try {
 			String firstLine = "#";
+
 			while (firstLine.startsWith("#")) {
+				reader.peekLine();
 				firstLine = reader.readLine();
 			}
 			String secondLine = "#";
 			while (secondLine.startsWith("#")) {
+				reader.peekLine();
 				secondLine = reader.readLine();
 			}
 
@@ -215,15 +240,68 @@ public class MatrixParser {
 			e.printStackTrace();
 		}
 		reader.reset();
-
 		return prediction;
 	}
 
-	public void removeColumnPrefix() {
-		if (columnNames.hasPrefix())
-			for (int i = 0; i < columnNames.size(); i++) {
-				columnNames.set(i, columnNames.get(i).substring(columnNames.getPrefix().length()));
+	private Vector<String> getEdgeStrings() {
+		Vector<String> edges = new Vector<String>();
+		for (int s : edgeMap.keySet()) {
+			Map<Integer, Double> tgtMap = edgeMap.get(s);
+			for (int t : tgtMap.keySet()) {
+				double value = tgtMap.get(t);
+				edges.add(getRowName(s) + " - " + getColumnName(t) + " = " + value);
 			}
+		}
+		return edges;
+	}
+
+	public void removeColumnPrefix() {
+		if (parameters.columnPrefix != null && !parameters.columnPrefix.isEmpty())
+			for (int i = 0; i < columnNames.size(); i++) {
+				String name = columnNames.get(i);
+				if (name.startsWith(parameters.columnPrefix)) {
+					name = name.substring(parameters.columnPrefix.length());
+					columnNames.set(i, name);
+				}
+			}
+	}
+
+	public static void main(String[] args) throws Exception {
+
+		String[] files = new String[] { "/Users/bsettle/git/aMatReader/python/samples/sample.mat",
+				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderRow.mat",
+				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderColumn.mat",
+				"/Users/bsettle/git/aMatReader/python/samples/crazyTest.csv",
+				"/Users/bsettle/git/aMatReader/python/samples/crazyTest2.txt",
+				"/Users/bsettle/git/aMatReader/python/samples/crazyTest3.txt" };
+		String outputAnswer = null;
+		for (String f : files) {
+			System.out.println(f);
+			FileInputStream in = new FileInputStream(f);
+			ResettableBufferedReader reader = new ResettableBufferedReader(new BufferedInputStream(in));
+			MatrixParameters pred = MatrixParser.predictParameters(reader);
+			pred.ignoreZeros = true;
+			pred.undirected = false;
+			MatrixParser p = new MatrixParser(reader, pred);
+			Vector<String> strs = p.getEdgeStrings();
+			String[] strsArr = new String[strs.size()];
+			strs.toArray(strsArr);
+			Arrays.sort(strsArr);
+
+			String output = String.join("\n", strsArr);
+
+			if (outputAnswer == null) {
+				System.out.println(" = \n" + output);
+				outputAnswer = output;
+			} else {
+				if (!output.equals(outputAnswer)) {
+					System.out.println(" mismatch = \n" + output);
+					break;
+				} else {
+					System.out.println("match");
+				}
+			}
+		}
 	}
 
 }

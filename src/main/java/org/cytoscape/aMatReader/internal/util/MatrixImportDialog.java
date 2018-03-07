@@ -22,7 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderParameters;
-import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParameterPrediction;
+import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParameters;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.util.swing.LookAndFeelUtil;
 
@@ -290,7 +290,7 @@ public class MatrixImportDialog extends JDialog {
 
 	}
 
-	public void updateOptions(String name, MatrixParameterPrediction prediction, boolean newCollection) {
+	public void updateOptions(String name, MatrixParameters prediction, boolean newCollection) {
 		getMatrixButtons().setButtons(prediction.hasRowNames, prediction.hasColumnNames, null);
 		getDelimiterComboBox().setSelectedItem(prediction.delimiter);
 		getColumnNameEntry().setText(name);

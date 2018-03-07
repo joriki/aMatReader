@@ -19,14 +19,22 @@ public class ResettableBufferedReader extends BufferedReader {
 		index = 0;
 	}
 
-	@Override
+	public boolean peekLine() throws IOException {
+		try {
+			String line = super.readLine();
+			readLines.add(line);
+		} catch (IOException e) {
+			return false;
+		}
+		return true;
+	}
+
 	public String readLine() throws IOException {
 		String line;
 		if (index < readLines.size()) {
 			line = readLines.get(index);
 		} else {
 			line = super.readLine();
-			readLines.add(line);
 		}
 		index++;
 		return line;

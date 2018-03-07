@@ -115,7 +115,9 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 		if (delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized");
 		}
-		final MatrixParser parser = new MatrixParser(reader, delimiter, ignoreZeros, rowNames, columnNames, undirected);
+		MatrixParser.MatrixParameters params = new MatrixParser.MatrixParameters(delimiter, ignoreZeros, rowNames, columnNames, undirected);
+		
+		final MatrixParser parser = new MatrixParser(reader, params);
 		reader.close();
 
 		if (removeColumnPrefix)

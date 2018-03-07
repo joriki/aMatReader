@@ -17,8 +17,8 @@ import org.cytoscape.aMatReader.internal.rest.AMatReaderParameters;
 import org.cytoscape.aMatReader.internal.rest.AMatReaderResource.AMatReaderResponse;
 import org.cytoscape.aMatReader.internal.util.MatrixImportDialog;
 import org.cytoscape.aMatReader.internal.util.MatrixParser;
-import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParameterPrediction;
 import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
+import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParameters;
 import org.cytoscape.io.read.CyNetworkReader;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.subnetwork.CyRootNetwork;
@@ -156,7 +156,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 		if (name != null) {
 			InputStream is = inputStreamMap.get(name);
 			reader = new ResettableBufferedReader(is);
-			MatrixParameterPrediction prediction = new MatrixParameterPrediction();
+			MatrixParameters prediction = new MatrixParameters();
 			try {
 				prediction = MatrixParser.predictParameters(reader);
 			} catch (IOException e1) {
@@ -213,7 +213,7 @@ public class AMatReaderWrapperTask extends AbstractTask implements CyNetworkRead
 					InputStream is = inputStreamMap.get(name);
 					reader = new ResettableBufferedReader(is);
 
-					MatrixParameterPrediction prediction;
+					MatrixParameters prediction;
 					try {
 						prediction = MatrixParser.predictParameters(reader);
 						getDialog().updateOptions(name, prediction, true);

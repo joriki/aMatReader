@@ -4,3 +4,4 @@ python/dist
 
 python/*.egg-info
 
+*/.DS_Store

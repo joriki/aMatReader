@@ -15,6 +15,8 @@ Node3	4	3		1
 Node4		3	1		
 ```
 
+More sample adjacency matrix files are available in the `samples` directory in the parent folder of this repo
+
 Note that lines starting with `#` are considered comments and are ignored
 
 ## Using the app in Cytoscape

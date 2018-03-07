@@ -19,7 +19,7 @@ _core = Core(CyRESTInstance(base_url=BASE_URL))  # assumes Cytoscape answers at 
 import os
 path = os.path.realpath(__file__)
 path = os.path.dirname(path)
-#path = os.path.dirname(path)
+path = os.path.dirname(path)
 SAMPLE_DIR = os.path.join(path, 'samples')
 SAMPLE_FILE = os.path.join(SAMPLE_DIR, "sample.mat")
 CRAZY_SAMPLE = os.path.join(SAMPLE_DIR, "crazyTest.csv")

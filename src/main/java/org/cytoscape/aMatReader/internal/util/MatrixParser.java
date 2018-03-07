@@ -266,42 +266,42 @@ public class MatrixParser {
 			}
 	}
 
-	public static void main(String[] args) throws Exception {
-
-		String[] files = new String[] { "/Users/bsettle/git/aMatReader/python/samples/sample.mat",
-				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderRow.mat",
-				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderColumn.mat",
-				"/Users/bsettle/git/aMatReader/python/samples/crazyTest.csv",
-				"/Users/bsettle/git/aMatReader/python/samples/crazyTest2.txt",
-				"/Users/bsettle/git/aMatReader/python/samples/crazyTest3.txt" };
-		String outputAnswer = null;
-		for (String f : files) {
-			System.out.println(f);
-			FileInputStream in = new FileInputStream(f);
-			ResettableBufferedReader reader = new ResettableBufferedReader(new BufferedInputStream(in));
-			MatrixParameters pred = MatrixParser.predictParameters(reader);
-			pred.ignoreZeros = true;
-			pred.undirected = false;
-			MatrixParser p = new MatrixParser(reader, pred);
-			Vector<String> strs = p.getEdgeStrings();
-			String[] strsArr = new String[strs.size()];
-			strs.toArray(strsArr);
-			Arrays.sort(strsArr);
-
-			String output = String.join("\n", strsArr);
-
-			if (outputAnswer == null) {
-				System.out.println(" = \n" + output);
-				outputAnswer = output;
-			} else {
-				if (!output.equals(outputAnswer)) {
-					System.out.println(" mismatch = \n" + output);
-					break;
-				} else {
-					System.out.println("match");
-				}
-			}
-		}
-	}
+//	public static void main(String[] args) throws Exception {
+//
+//		String[] files = new String[] { "/Users/bsettle/git/aMatReader/python/samples/sample.mat",
+//				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderRow.mat",
+//				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderColumn.mat",
+//				"/Users/bsettle/git/aMatReader/python/samples/crazyTest.csv",
+//				"/Users/bsettle/git/aMatReader/python/samples/crazyTest2.txt",
+//				"/Users/bsettle/git/aMatReader/python/samples/crazyTest3.txt" };
+//		String outputAnswer = null;
+//		for (String f : files) {
+//			System.out.println(f);
+//			FileInputStream in = new FileInputStream(f);
+//			ResettableBufferedReader reader = new ResettableBufferedReader(new BufferedInputStream(in));
+//			MatrixParameters pred = MatrixParser.predictParameters(reader);
+//			pred.ignoreZeros = true;
+//			pred.undirected = false;
+//			MatrixParser p = new MatrixParser(reader, pred);
+//			Vector<String> strs = p.getEdgeStrings();
+//			String[] strsArr = new String[strs.size()];
+//			strs.toArray(strsArr);
+//			Arrays.sort(strsArr);
+//
+//			String output = String.join("\n", strsArr);
+//
+//			if (outputAnswer == null) {
+//				System.out.println(" = \n" + output);
+//				outputAnswer = output;
+//			} else {
+//				if (!output.equals(outputAnswer)) {
+//					System.out.println(" mismatch = \n" + output);
+//					break;
+//				} else {
+//					System.out.println("match");
+//				}
+//			}
+//		}
+//	}
 
 }

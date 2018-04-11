@@ -15,7 +15,7 @@ import org.cytoscape.service.util.AbstractCyActivator;
 import org.osgi.framework.BundleContext;
 
 public class CyActivator extends AbstractCyActivator {
-	private static final String AMATREADER_MENU = "Apps.AMatReader";
+	private static final String AMATREADER_MENU = "Apps.aMatReader[5.0]";
 	private static final String AMATREADER_ACTION = "Import Matrix Files";
 
 	public CyActivator() {
@@ -32,6 +32,7 @@ public class CyActivator extends AbstractCyActivator {
 		menuProps.setProperty(TITLE, AMATREADER_ACTION);
 		menuProps.setProperty(IN_MENU_BAR, "true");
 		menuProps.setProperty(MENU_GRAVITY, "5.0");
+		
 
 		FileChooserTaskFactory menuTF = new FileChooserTaskFactory(resourceManager);
 		registerAllServices(bc, menuTF, menuProps);
@@ -50,5 +51,4 @@ public class CyActivator extends AbstractCyActivator {
 		AMatReaderResource restService = new AMatReaderResourceImpl(serviceRegistrar, resourceManager);
 		registerService(bc, restService, AMatReaderResource.class);
 	}
-
 }

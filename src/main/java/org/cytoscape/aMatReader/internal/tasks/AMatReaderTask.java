@@ -111,17 +111,18 @@ public class AMatReaderTask extends AbstractTask implements CyNetworkReader, Obs
 
 	@Override
 	public void run(TaskMonitor taskMonitor) throws Exception {
-
 		if (delimiter == null) {
 			throw new NullPointerException("Delimiter value not recognized");
 		}
 		MatrixParser.MatrixParameters params = new MatrixParser.MatrixParameters(delimiter, ignoreZeros, rowNames, columnNames, undirected);
 		
-		final MatrixParser parser = new MatrixParser(reader, params);
+		final MatrixParser parser = new MatrixParser(params);
+		parser.buildNetwork(reader);
 		reader.close();
 
-		if (removeColumnPrefix)
+		if (removeColumnPrefix){
 			parser.removeColumnPrefix();
+		}
 
 		if (network == null) {
 			network = rm.netFactory.createNetwork();

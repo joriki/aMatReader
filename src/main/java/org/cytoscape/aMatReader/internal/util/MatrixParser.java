@@ -10,7 +10,7 @@ import java.util.Vector;
 
 public class MatrixParser {
 	private Vector<String> rowNames;
-	private Vector<String> columnNames;
+	private PrefixedVector columnNames;
 	private final HashMap<Integer, Map<Integer, Double>> edgeMap;
 	private final MatrixParameters parameters;
 
@@ -25,13 +25,12 @@ public class MatrixParser {
 		}
 	}
 
-	public MatrixParser(final ResettableBufferedReader reader, MatrixParameters params)
+	public MatrixParser(MatrixParameters params)
 			throws IOException, MatrixParseException {
 		this.parameters = params;
 		this.rowNames = new Vector<String>();
 		this.columnNames = new PrefixedVector();
 		edgeMap = new HashMap<Integer, Map<Integer, Double>>();
-		buildNetwork(reader);
 	}
 
 	public int edgeCount() {
@@ -91,7 +90,7 @@ public class MatrixParser {
 		edgeMap.put(rowNumber, tgtMap);
 	}
 
-	private boolean buildNetwork(final ResettableBufferedReader reader) throws IOException, MatrixParseException {
+	public boolean buildNetwork(final ResettableBufferedReader reader) throws IOException, MatrixParseException {
 		String[] row;
 		int rowNumber = 0;
 		boolean pastColumnLine = !parameters.hasColumnNames;
@@ -256,6 +255,10 @@ public class MatrixParser {
 	}
 
 	public void removeColumnPrefix() {
+		
+		if (columnNames.hasPrefix()){
+			parameters.columnPrefix = columnNames.getPrefix();
+		}
 		if (parameters.columnPrefix != null && !parameters.columnPrefix.isEmpty())
 			for (int i = 0; i < columnNames.size(); i++) {
 				String name = columnNames.get(i);
@@ -266,42 +269,46 @@ public class MatrixParser {
 			}
 	}
 
-//	public static void main(String[] args) throws Exception {
-//
-//		String[] files = new String[] { "/Users/bsettle/git/aMatReader/python/samples/sample.mat",
-//				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderRow.mat",
-//				"/Users/bsettle/git/aMatReader/python/samples/sampleNoHeaderColumn.mat",
-//				"/Users/bsettle/git/aMatReader/python/samples/crazyTest.csv",
-//				"/Users/bsettle/git/aMatReader/python/samples/crazyTest2.txt",
-//				"/Users/bsettle/git/aMatReader/python/samples/crazyTest3.txt" };
-//		String outputAnswer = null;
-//		for (String f : files) {
-//			System.out.println(f);
-//			FileInputStream in = new FileInputStream(f);
-//			ResettableBufferedReader reader = new ResettableBufferedReader(new BufferedInputStream(in));
-//			MatrixParameters pred = MatrixParser.predictParameters(reader);
-//			pred.ignoreZeros = true;
-//			pred.undirected = false;
-//			MatrixParser p = new MatrixParser(reader, pred);
-//			Vector<String> strs = p.getEdgeStrings();
-//			String[] strsArr = new String[strs.size()];
-//			strs.toArray(strsArr);
-//			Arrays.sort(strsArr);
-//
-//			String output = String.join("\n", strsArr);
-//
-//			if (outputAnswer == null) {
-//				System.out.println(" = \n" + output);
-//				outputAnswer = output;
-//			} else {
-//				if (!output.equals(outputAnswer)) {
-//					System.out.println(" mismatch = \n" + output);
-//					break;
-//				} else {
-//					System.out.println("match");
-//				}
-//			}
-//		}
-//	}
+	public static void main(String[] args) throws Exception {
+
+		String[] files = new String[] { 
+				"/Users/bsettle/git/aMatReader/samples/sample.mat",
+				"/Users/bsettle/git/aMatReader/samples/sampleNoHeaderRow.mat",
+				"/Users/bsettle/git/aMatReader/samples/sampleNoHeaderColumn.mat",
+				"/Users/bsettle/git/aMatReader/samples/crazyTest.csv",
+				"/Users/bsettle/git/aMatReader/samples/crazyTest2.txt",
+				"/Users/bsettle/git/aMatReader/samples/crazyTest3.txt" 
+				};
+		String outputAnswer = null;
+		for (String f : files) {
+			System.out.println(f);
+			FileInputStream in = new FileInputStream(f);
+			ResettableBufferedReader reader = new ResettableBufferedReader(new BufferedInputStream(in));
+			MatrixParameters pred = MatrixParser.predictParameters(reader);
+			pred.ignoreZeros = true;
+			pred.undirected = false;
+			MatrixParser p = new MatrixParser(pred);
+			p.buildNetwork(reader);
+			reader.close();
+			Vector<String> strs = p.getEdgeStrings();
+			String[] strsArr = new String[strs.size()];
+			strs.toArray(strsArr);
+			Arrays.sort(strsArr);
+
+			String output = String.join("\n", strsArr);
+
+			if (outputAnswer == null) {
+				System.out.println(" = \n" + output);
+				outputAnswer = output;
+			} else {
+				if (!output.equals(outputAnswer)) {
+					System.out.println(" mismatch = \n" + output);
+					break;
+				} else {
+					System.out.println("match");
+				}
+			}
+		}
+	}
 
 }

@@ -34,7 +34,8 @@ public interface AMatReaderResource {
 			+ "and all values are delimited by a tab, space, comma, or pipe '|'. This app only allows for integer/floating point values for easy parsing.";
 	static final String IMPORT_NOTES = "Import a adjacency matrix file(s) as a new Cytoscape network. " + '\n';
 	static final String EXTEND_NOTES = "Use adjacency matrix file(s) to add edge attributes to an existing Cytoscape network. " + '\n';
-
+	static final String PREDICT_NOTES = "Get the suggested parameters for a matrix file by peeking at the first two lines.";
+	
 	static final Logger logger = LoggerFactory.getLogger(AMatReaderResource.class);
 	final static String resourceErrorRoot = "urn:cytoscape:ci:aMatReader-app:v1";
 
@@ -52,6 +53,17 @@ public interface AMatReaderResource {
 			data.suid = resp.data.suid;
 		}
 	}
+	
+	@POST
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("predictParameters")
+	@ApiOperation(value = "Peek at a file to determine if row/column names exist, columns have prefixes.", notes = PREDICT_NOTES, response = Response.class)
+	@ApiResponses(value = {
+			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class)})
+	public abstract Response aMatReaderPredict(
+			@ApiParam(value = "Adjacency matrix file path", required = true) String path);
+
 
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)

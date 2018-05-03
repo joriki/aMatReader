@@ -13,16 +13,19 @@ import org.cytoscape.io.util.StreamUtil;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.service.util.AbstractCyActivator;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
 
 public class CyActivator extends AbstractCyActivator {
 	private static final String AMATREADER_MENU = "Apps.aMatReader[5.0]";
 	private static final String AMATREADER_ACTION = "Import Matrix Files";
+	public static CIServiceManager serviceManager;
 
 	public CyActivator() {
 		super();
 	}
 
 	public void start(BundleContext bc) {
+		
 		final CyServiceRegistrar serviceRegistrar = getService(bc, CyServiceRegistrar.class);
 		final ResourceManager resourceManager = new ResourceManager(serviceRegistrar);
 		final StreamUtil streamUtil = getService(bc, StreamUtil.class);
@@ -32,7 +35,6 @@ public class CyActivator extends AbstractCyActivator {
 		menuProps.setProperty(TITLE, AMATREADER_ACTION);
 		menuProps.setProperty(IN_MENU_BAR, "true");
 		menuProps.setProperty(MENU_GRAVITY, "5.0");
-		
 
 		FileChooserTaskFactory menuTF = new FileChooserTaskFactory(resourceManager);
 		registerAllServices(bc, menuTF, menuProps);
@@ -48,7 +50,19 @@ public class CyActivator extends AbstractCyActivator {
 		wrapperProps.setProperty(IN_MENU_BAR, "false");
 		registerAllServices(bc, wrapperService, wrapperProps);
 
-		AMatReaderResource restService = new AMatReaderResourceImpl(serviceRegistrar, resourceManager);
-		registerService(bc, restService, AMatReaderResource.class);
+		try {
+			serviceManager = new CIServiceManager(bc);
+			AMatReaderResource restService = new AMatReaderResourceImpl(serviceRegistrar, resourceManager);
+			registerService(bc, restService, AMatReaderResource.class);
+		} catch (InvalidSyntaxException e) {
+
+		}
+
+	}
+
+	@Override
+	public void shutDown() {
+		super.shutDown();
+		serviceManager.close();
 	}
 }

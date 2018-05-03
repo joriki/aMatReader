@@ -14,9 +14,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.cytoscape.aMatReader.internal.CyActivator;
 import org.cytoscape.aMatReader.internal.ResourceManager;
 import org.cytoscape.aMatReader.internal.tasks.AMatReaderTask;
 import org.cytoscape.aMatReader.internal.util.Delimiter;
+import org.cytoscape.aMatReader.internal.util.MatrixParser;
+import org.cytoscape.aMatReader.internal.util.MatrixParser.MatrixParameters;
 import org.cytoscape.aMatReader.internal.util.ResettableBufferedReader;
 import org.cytoscape.ci.CIErrorFactory;
 import org.cytoscape.ci.CIResponseFactory;
@@ -40,15 +43,11 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	private final ResourceManager resourceManager;
 	private final CyNetworkManager netMngr;
 
-	private final CIResponseFactory ciResponseFactory;
-	private final CIErrorFactory ciErrorFactory;
 	private final AMatReaderTaskObserver taskObserver;
 
 	public AMatReaderResourceImpl(final CyServiceRegistrar registrar, final ResourceManager resourceManager) {
 		super();
 		this.resourceManager = resourceManager;
-		this.ciErrorFactory = registrar.getService(CIErrorFactory.class);
-		this.ciResponseFactory = registrar.getService(CIResponseFactory.class);
 		this.netMngr = registrar.getService(CyNetworkManager.class);
 
 		taskObserver = new AMatReaderTaskObserver(this, "aMatReader", TASK_EXECUTION_ERROR_CODE);
@@ -59,11 +58,13 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 	private final static String resourceErrorRoot = "urn:cytoscape:ci:aMatReader-app:v1";
 
 	private CIError buildCIError(int status, String resourcePath, String code, String message, Exception e) {
+		CIErrorFactory ciErrorFactory = CyActivator.serviceManager.getCIErrorFactory();
 		return ciErrorFactory.getCIError(status, resourceErrorRoot + ":" + resourcePath + ":" + code, message);
 	}
 
 	public CIResponse<Object> buildCIErrorResponse(int status, String resourcePath, String code, String message,
 			Exception e) {
+		CIResponseFactory ciResponseFactory = CyActivator.serviceManager.getCIResponseFactory();
 		CIResponse<Object> response = ciResponseFactory.getCIResponse(new Object());
 
 		CIError error = buildCIError(status, resourcePath, code, message, e);
@@ -212,9 +213,32 @@ public class AMatReaderResourceImpl implements AMatReaderResource {
 
 	public CIResponse<?> importString(String matrix, String name, Map<String, Object> context)
 			throws NullPointerException, IOException {
-		
+
 		ByteArrayInputStream bais = new ByteArrayInputStream(matrix.getBytes());
 		return runTask(null, bais, name, context);
+
+	}
+
+	@Override
+	public Response aMatReaderPredict(String path) {
+		try {
+			FileInputStream is = new FileInputStream(path);
+			ResettableBufferedReader reader = new ResettableBufferedReader(is);
+			MatrixParameters predicted_params = MatrixParser.predictParameters(reader);
+
+			CIResponse<AMatReaderParameters> resp = new CIResponse<AMatReaderParameters>();
+			AMatReaderParameters params = new AMatReaderParameters();
+			params.columnNames = predicted_params.hasColumnNames;
+			params.rowNames = predicted_params.hasRowNames;
+			params.delimiter = predicted_params.delimiter;
+			params.files = new String[] { path };
+			params.ignoreZeros = predicted_params.ignoreZeros;
+			params.undirected = predicted_params.undirected;
+			resp.data = params;
+			return Response.status(Response.Status.OK).type(MediaType.APPLICATION_JSON).entity(params).build();
+		} catch (Exception e) {
+			return buildErrorResponse(Status.BAD_REQUEST, "500", e);
+		}
 
 	}
 

@@ -46,4 +46,5 @@ public class ResourceManager {
 		this.cyRegistrar = cyRegistrar;
 		this.PARENT_FRAME = swingApp.getJFrame();
 	}
+
 }

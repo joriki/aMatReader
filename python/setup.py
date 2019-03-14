@@ -7,7 +7,7 @@ here = path.abspath(path.dirname(__file__))
 
 setup(
     name='pyCyAMatReader',
-    version='0.0.1',
+    version='0.0.3',
     description='Python interface for the AMatReader Cytoscape app',
     #url='',
     author='Brett Settle',

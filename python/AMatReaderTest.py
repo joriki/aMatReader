@@ -66,9 +66,9 @@ class AMatReaderTestCase(unittest.TestCase):
 		else:
 			assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 
-	def test_amatreader_nonexistant_file(self):
+	def test_amatreader_nonexistent_file(self):
 		data = BASE_DATA.copy()
-		data["files"] = ["NONEXISTANT"]
+		data["files"] = ["NONEXISTENT"]
 		try:
 			_amatreader.import_matrix(data)
 		except CyFailedCIError as e:
@@ -80,9 +80,9 @@ class AMatReaderTestCase(unittest.TestCase):
 		else:
 			assert False, "test_amatreader_no_network did not get the expected CyFailedError exception"
 
-	def test_amatreader_one_nonexistant_file(self):
+	def test_amatreader_one_nonexistent_file(self):
 		data = BASE_DATA.copy()
-		data["files"] = [SAMPLE_FILE, "NONEXISTANT"]
+		data["files"] = [SAMPLE_FILE, "NONEXISTENT"]
 
 		try:
 			_amatreader.import_matrix(data)

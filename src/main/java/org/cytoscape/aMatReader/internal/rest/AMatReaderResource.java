@@ -63,7 +63,7 @@ public interface AMatReaderResource {
 	@Path("predictParameters")
 	@ApiOperation(value = "Peek at a file to determine if row/column names exist, columns have prefixes.", notes = PREDICT_NOTES, response = Response.class)
 	@ApiResponses(value = {
-			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class) })
+			@ApiResponse(code = 400, message = "Invalid or nonexistent file", response = CIResponse.class) })
 	public abstract Response aMatReaderPredict(
 			@ApiParam(value = "Adjacency matrix file path", required = true, defaultValue="/path/to/matrix.adj") @QueryParam("path") String path);
 
@@ -74,7 +74,7 @@ public interface AMatReaderResource {
 	@ApiOperation(value = "Import a new network from adjacency matrix file(s)", notes = IMPORT_NOTES
 			+ GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
 	@ApiResponses(value = {
-			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
+			@ApiResponse(code = 400, message = "Invalid or nonexistent file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })
 	public abstract Response aMatReader(
 			@ApiParam(value = "Adjacency matrix import parameters", required = true) AMatReaderParameters aMatReaderParameters);
@@ -86,7 +86,7 @@ public interface AMatReaderResource {
 	@ApiOperation(value = "Add an edge attribute column to an existing network from adjacency matrix file(s)", notes = EXTEND_NOTES
 			+ GENERIC_SWAGGER_NOTES, response = AMatReaderResponse.class)
 	@ApiResponses(value = {
-			@ApiResponse(code = 400, message = "Invalid or nonexistant file", response = CIResponse.class),
+			@ApiResponse(code = 400, message = "Invalid or nonexistent file", response = CIResponse.class),
 			@ApiResponse(code = 401, message = "Invalid parameters", response = CIResponse.class), })
 	public abstract Response aMatReaderExtend(
 			@ApiParam(value = "Network SUID to extend") @PathParam("networkSUID") long networkSUID,
